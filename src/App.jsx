@@ -12,7 +12,10 @@ function App() {
   const [dayIndex, setDayIndex] = useState(0);
   const [employeeName, setEmployeeName] = useState("");
 
-  // קריאה מה-localStorage בעת טעינת הדף
+  const [date, setDate] = useState("");
+  const [room, setRoom] = useState("");
+
+  // קריאה מה-localStorage
   useEffect(() => {
     const storedMorning = localStorage.getItem("morningSchedule");
     const storedAfternoon = localStorage.getItem("afternoonSchedule");
@@ -25,7 +28,6 @@ function App() {
     }
   }, []);
 
-  // שמירה ל-localStorage בכל שינוי
   const saveToStorage = (morning, afternoon) => {
     localStorage.setItem("morningSchedule", JSON.stringify(morning));
     localStorage.setItem("afternoonSchedule", JSON.stringify(afternoon));
@@ -61,11 +63,44 @@ function App() {
     }
   };
 
+  const handleSubmitWhatsapp = () => {
+    if (!date || !room) {
+      alert("אנא מלא את כל השדות");
+      return;
+    }
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date}?`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+  };
+
   return (
     <div style={{ textAlign: "center", marginTop: "30px", fontFamily: "Arial", direction: "rtl" }}>
-      <h1>ניהול זמינות חדרים</h1>
+      <h1>חדר פנוי בשניים 3?</h1>
 
+      {/* טופס שליחת בקשת וואטסאפ */}
+      <div style={{ margin: "20px", background: "#e0f7fa", padding: "20px", borderRadius: "10px", display: "inline-block" }}>
+        <h2>שליחת בקשת וואטסאפ</h2>
+        <div style={{ marginBottom: "10px" }}>
+          <label>בחר תאריך: </label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div style={{ marginBottom: "10px" }}>
+          <label>בחר חדר: </label>
+          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+            <option value="">בחר חדר</option>
+            {Array.from({ length: 8 }, (_, i) => (
+              <option key={i} value={i + 1}>חדר {i + 1}</option>
+            ))}
+          </select>
+        </div>
+        <button onClick={handleSubmitWhatsapp} style={{ padding: "10px 20px", fontSize: "16px" }}>
+          שלח בקשת וואטסאפ
+        </button>
+      </div>
+
+      {/* טופס ניהול עובדים בחדרים */}
       <div style={{ margin: "20px", background: "#f5f5f5", padding: "20px", borderRadius: "10px", display: "inline-block" }}>
+        <h2>ניהול עובדים בחדרים</h2>
         <div style={{ marginBottom: "10px" }}>
           <label>בחר זמן ביום: </label>
           <select value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)}>
@@ -113,6 +148,7 @@ function App() {
         </button>
       </div>
 
+      {/* טבלאות הצגה */}
       <h2 style={{ marginTop: "40px" }}>זמינות חדרים 08:00–15:00</h2>
       <table border="1" style={{ width: "90%", margin: "auto", textAlign: "center", borderCollapse: "collapse", marginBottom: "40px" }}>
         <thead style={{ background: "#e0e0e0" }}>

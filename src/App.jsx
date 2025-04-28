@@ -1,76 +1,121 @@
 // src/App.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// מערכים של שמות העובדים
-const morningSchedule = [
-  ["משה כהן", "שרה לוי", "אבי לוי", "", "", ""],
-  ["דנה לוי", "", "אורן בן דוד", "", "", ""],
-  ["רעות ישראלי", "", "", "", "", ""],
-  ["", "נירית גבע", "", "", "", ""],
-  ["", "", "", "יואב רון", "", ""],
-  ["", "", "", "", "מיכל כהן", ""],
-  ["", "", "", "", "", "ערן ממן"],
-  ["", "", "", "", "", ""],
-];
-
-const afternoonSchedule = [
-  ["ליאור אשכנזי", "", "", "", "", ""],
-  ["", "שירה ברק", "", "", "", ""],
-  ["", "", "תומר אלון", "", "", ""],
-  ["", "", "", "גיא מזרחי", "", ""],
-  ["", "", "", "", "חני אליאס", ""],
-  ["", "", "", "", "", "אורי שמואלי"],
-  ["", "", "", "", "", ""],
-  ["", "", "", "", "", ""],
-];
+const emptySchedule = Array(8).fill().map(() => Array(6).fill(""));
 
 function App() {
-  const [date, setDate] = useState("");
-  const [room, setRoom] = useState("");
+  const [morningSchedule, setMorningSchedule] = useState(emptySchedule);
+  const [afternoonSchedule, setAfternoonSchedule] = useState(emptySchedule);
 
-  const handleSubmit = () => {
-    if (!date || !room) {
-      alert("אנא מלא את כל השדות");
+  const [timeOfDay, setTimeOfDay] = useState("morning");
+  const [roomIndex, setRoomIndex] = useState(0);
+  const [dayIndex, setDayIndex] = useState(0);
+  const [employeeName, setEmployeeName] = useState("");
+
+  // קריאה מה-localStorage בעת טעינת הדף
+  useEffect(() => {
+    const storedMorning = localStorage.getItem("morningSchedule");
+    const storedAfternoon = localStorage.getItem("afternoonSchedule");
+
+    if (storedMorning) {
+      setMorningSchedule(JSON.parse(storedMorning));
+    }
+    if (storedAfternoon) {
+      setAfternoonSchedule(JSON.parse(storedAfternoon));
+    }
+  }, []);
+
+  // שמירה ל-localStorage בכל שינוי
+  const saveToStorage = (morning, afternoon) => {
+    localStorage.setItem("morningSchedule", JSON.stringify(morning));
+    localStorage.setItem("afternoonSchedule", JSON.stringify(afternoon));
+  };
+
+  const handleUpdate = () => {
+    if (!employeeName) {
+      alert("נא למלא שם עובד");
       return;
     }
-    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date}?`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+
+    let newSchedule;
+    if (timeOfDay === "morning") {
+      newSchedule = [...morningSchedule];
+      newSchedule[roomIndex][dayIndex] = employeeName;
+      setMorningSchedule(newSchedule);
+      saveToStorage(newSchedule, afternoonSchedule);
+    } else {
+      newSchedule = [...afternoonSchedule];
+      newSchedule[roomIndex][dayIndex] = employeeName;
+      setAfternoonSchedule(newSchedule);
+      saveToStorage(morningSchedule, newSchedule);
+    }
+
+    setEmployeeName("");
+  };
+
+  const handleReset = () => {
+    if (window.confirm("האם אתה בטוח שברצונך לאפס את כל הנתונים?")) {
+      setMorningSchedule(emptySchedule);
+      setAfternoonSchedule(emptySchedule);
+      saveToStorage(emptySchedule, emptySchedule);
+    }
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px", fontFamily: "Arial", direction: "rtl" }}>
-      <h1>חדר פנוי בשניים 3?</h1>
+    <div style={{ textAlign: "center", marginTop: "30px", fontFamily: "Arial", direction: "rtl" }}>
+      <h1>ניהול זמינות חדרים</h1>
 
-      {/* טופס בחירת תאריך וחדר */}
-      <div style={{ marginBottom: "20px" }}>
-        <label>בחר תאריך: </label>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <div style={{ margin: "20px", background: "#f5f5f5", padding: "20px", borderRadius: "10px", display: "inline-block" }}>
+        <div style={{ marginBottom: "10px" }}>
+          <label>בחר זמן ביום: </label>
+          <select value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)}>
+            <option value="morning">08:00–15:00</option>
+            <option value="afternoon">15:00 והלאה</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: "10px" }}>
+          <label>בחר חדר: </label>
+          <select value={roomIndex} onChange={(e) => setRoomIndex(Number(e.target.value))}>
+            {Array.from({ length: 8 }, (_, i) => (
+              <option key={i} value={i}>חדר {i + 1}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: "10px" }}>
+          <label>בחר יום: </label>
+          <select value={dayIndex} onChange={(e) => setDayIndex(Number(e.target.value))}>
+            <option value={0}>ראשון</option>
+            <option value={1}>שני</option>
+            <option value={2}>שלישי</option>
+            <option value={3}>רביעי</option>
+            <option value={4}>חמישי</option>
+            <option value={5}>שישי</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: "10px" }}>
+          <input
+            type="text"
+            placeholder="שם עובד"
+            value={employeeName}
+            onChange={(e) => setEmployeeName(e.target.value)}
+            style={{ padding: "5px" }}
+          />
+          <button onClick={handleUpdate} style={{ marginRight: "10px", padding: "5px 15px" }}>
+            שמור
+          </button>
+        </div>
+
+        <button onClick={handleReset} style={{ background: "red", color: "white", padding: "5px 15px", border: "none", borderRadius: "5px" }}>
+          אפס את כל הנתונים
+        </button>
       </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <label>בחר חדר: </label>
-        <select value={room} onChange={(e) => setRoom(e.target.value)}>
-          <option value="">בחר חדר</option>
-          <option value="1">חדר 1</option>
-          <option value="2">חדר 2</option>
-          <option value="3">חדר 3</option>
-          <option value="4">חדר 4</option>
-          <option value="5">חדר 5</option>
-          <option value="6">חדר 6</option>
-          <option value="7">חדר 7</option>
-          <option value="8">חדר 8</option>
-        </select>
-      </div>
-
-      <button onClick={handleSubmit} style={{ padding: "10px 20px", fontSize: "16px" }}>
-        שלח בקשת וואטסאפ
-      </button>
-
-      {/* טבלת זמינות בוקר */}
-      <h2 style={{ marginTop: "50px" }}>זמינות חדרים 08:00–15:00</h2>
-      <table border="1" style={{ width: "100%", textAlign: "center", borderCollapse: "collapse", marginBottom: "40px" }}>
-        <thead>
+      <h2 style={{ marginTop: "40px" }}>זמינות חדרים 08:00–15:00</h2>
+      <table border="1" style={{ width: "90%", margin: "auto", textAlign: "center", borderCollapse: "collapse", marginBottom: "40px" }}>
+        <thead style={{ background: "#e0e0e0" }}>
           <tr>
             <th>חדר\יום</th>
             <th>ראשון</th>
@@ -93,10 +138,9 @@ function App() {
         </tbody>
       </table>
 
-      {/* טבלת זמינות אחה"צ */}
-      <h2>זמינות חדרים 15:00 והלאה</h2>
-      <table border="1" style={{ width: "100%", textAlign: "center", borderCollapse: "collapse" }}>
-        <thead>
+      <h2 style={{ marginTop: "40px" }}>זמינות חדרים 15:00 והלאה</h2>
+      <table border="1" style={{ width: "90%", margin: "auto", textAlign: "center", borderCollapse: "collapse" }}>
+        <thead style={{ background: "#e0e0e0" }}>
           <tr>
             <th>חדר\יום</th>
             <th>ראשון</th>

@@ -43,7 +43,7 @@ function App() {
       </div>
 
       {/* טבלה זמינות חדרים */}
-      <h2>זמינות חדרים 08:00–15:00</h2>
+      <h2>זמינות חדרים שפ"ח (08:00–15:00)</h2>
       <table border="1" style={{ width: "100%", textAlign: "center", borderCollapse: "collapse", marginBottom: "40px", direction: "rtl" }}>
         <thead>
           <tr>
@@ -66,7 +66,7 @@ function App() {
         </tbody>
       </table>
 
-      <h2>זמינות חדרים 15:00 והלאה</h2>
+      <h2>(זמינות חדרים שפ"מ (15:00 והלאה</h2>
       <table border="1" style={{ width: "100%", textAlign: "center", borderCollapse: "collapse", direction: "rtl" }}>
         <thead>
           <tr>

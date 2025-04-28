@@ -66,7 +66,7 @@ function App() {
         </tbody>
       </table>
 
-      <h2>(זמינות חדרים שפ"מ (15:00 והלאה</h2>
+      <h2>)זמינות חדרים שפ"מ (15:00 והלאה</h2>
       <table border="1" style={{ width: "100%", textAlign: "center", borderCollapse: "collapse", direction: "rtl" }}>
         <thead>
           <tr>

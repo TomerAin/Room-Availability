@@ -11,8 +11,14 @@ function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [schedule, setSchedule] = useState(() => {
+    const savedSchedule = localStorage.getItem("schedule");
+    return savedSchedule ? JSON.parse(savedSchedule) : {};
+  });
+
   const [editRoom, setEditRoom] = useState(null);
   const [newName, setNewName] = useState("");
+  const [selectedPsychologist, setSelectedPsychologist] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [date, setDate] = useState("");
   const [hour, setHour] = useState("");
@@ -20,7 +26,8 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem("psychologists", JSON.stringify(psychologists));
-  }, [psychologists]);
+    localStorage.setItem("schedule", JSON.stringify(schedule));
+  }, [psychologists, schedule]);
 
   const handleLogin = () => {
     const pass = prompt("הכנס סיסמת מנהל");
@@ -63,6 +70,21 @@ function App() {
     });
   };
 
+  const handleAssignPsychologistToDay = (day) => {
+    if (selectedPsychologist) {
+      setSchedule((prev) => {
+        const updated = {
+          ...prev,
+          [editRoom]: {
+            ...prev[editRoom],
+            [day]: selectedPsychologist,
+          },
+        };
+        return updated;
+      });
+    }
+  };
+
   const renderTable = (title) => (
     <div style={{ marginTop: "30px" }}>
       <h3 style={{ textAlign: "center" }}>{title}</h3>
@@ -94,7 +116,7 @@ function App() {
                 </td>
                 {days.map((day) => (
                   <td key={day} style={cellStyle}>
-                    {psychologists[roomNum]?.join(", ") || "-"}
+                    {schedule[roomNum]?.[day] || "-"}
                   </td>
                 ))}
               </tr>
@@ -160,6 +182,26 @@ function App() {
           />
           <br />
           <button onClick={handleAddPsychologist} style={{ marginTop: "10px" }}>הוסף</button>
+
+          {/* ניהול אחראי יומי */}
+          <h4 style={{ marginTop: "20px" }}>בחר פסיכולוג אחראי ליום</h4>
+          {days.map((day) => (
+            <div key={day}>
+              <label>{day}: </label>
+              <select
+                value={schedule[editRoom]?.[day] || ""}
+                onChange={(e) => {
+                  setSelectedPsychologist(e.target.value);
+                  handleAssignPsychologistToDay(day);
+                }}
+              >
+                <option value="">בחר פסיכולוג</option>
+                {(psychologists[editRoom] || []).map((name, index) => (
+                  <option key={index} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          ))}
           <button onClick={() => setEditRoom(null)} style={{ marginRight: "10px", marginTop: "10px" }}>
             סגור
           </button>

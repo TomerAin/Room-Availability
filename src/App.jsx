@@ -1,203 +1,137 @@
-// src/App.jsx
 import { useState, useEffect } from "react";
 
-const emptySchedule = Array(8).fill().map(() => Array(6).fill(""));
+const initialSchedule = () => {
+  const saved = localStorage.getItem("roomSchedule");
+  return saved ? JSON.parse(saved) : {};
+};
+
+const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
+const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי"];
+const parts = ["8:00–15:00", "15:00–22:00"];
 
 function App() {
-  const [morningSchedule, setMorningSchedule] = useState(emptySchedule);
-  const [afternoonSchedule, setAfternoonSchedule] = useState(emptySchedule);
-
-  const [timeOfDay, setTimeOfDay] = useState("morning");
-  const [roomIndex, setRoomIndex] = useState(0);
-  const [dayIndex, setDayIndex] = useState(0);
-  const [employeeName, setEmployeeName] = useState("");
-
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [room, setRoom] = useState("");
+  const [schedule, setSchedule] = useState(initialSchedule);
+  const [editMode, setEditMode] = useState(false);
+  const [password, setPassword] = useState("");
 
-  // קריאה מה-localStorage
   useEffect(() => {
-    const storedMorning = localStorage.getItem("morningSchedule");
-    const storedAfternoon = localStorage.getItem("afternoonSchedule");
+    localStorage.setItem("roomSchedule", JSON.stringify(schedule));
+  }, [schedule]);
 
-    if (storedMorning) {
-      setMorningSchedule(JSON.parse(storedMorning));
-    }
-    if (storedAfternoon) {
-      setAfternoonSchedule(JSON.parse(storedAfternoon));
-    }
-  }, []);
-
-  const saveToStorage = (morning, afternoon) => {
-    localStorage.setItem("morningSchedule", JSON.stringify(morning));
-    localStorage.setItem("afternoonSchedule", JSON.stringify(afternoon));
-  };
-
-  const handleUpdate = () => {
-    if (!employeeName) {
-      alert("נא למלא שם עובד");
-      return;
-    }
-
-    let newSchedule;
-    if (timeOfDay === "morning") {
-      newSchedule = [...morningSchedule];
-      newSchedule[roomIndex][dayIndex] = employeeName;
-      setMorningSchedule(newSchedule);
-      saveToStorage(newSchedule, afternoonSchedule);
-    } else {
-      newSchedule = [...afternoonSchedule];
-      newSchedule[roomIndex][dayIndex] = employeeName;
-      setAfternoonSchedule(newSchedule);
-      saveToStorage(morningSchedule, newSchedule);
-    }
-
-    setEmployeeName("");
-  };
-
-  const handleReset = () => {
-    if (window.confirm("האם אתה בטוח שברצונך לאפס את כל הנתונים?")) {
-      setMorningSchedule(emptySchedule);
-      setAfternoonSchedule(emptySchedule);
-      saveToStorage(emptySchedule, emptySchedule);
-    }
-  };
-
-  const handleSubmitWhatsapp = () => {
-    if (!date || !room) {
+  const handleSubmit = () => {
+    if (!date || !room || !time) {
       alert("אנא מלא את כל השדות");
       return;
     }
-    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date}?`;
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${time}?`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
   };
 
+  const handleCellClick = (day, roomNum, partIndex) => {
+    if (!editMode) return;
+    const key = `${day}-${roomNum}-${partIndex}`;
+    const newValue = prompt("הכנס/י שם עובד (או השאר ריק למחיקה):", schedule[key] || "");
+    setSchedule((prev) => {
+      const updated = { ...prev };
+      if (newValue) updated[key] = newValue;
+      else delete updated[key];
+      return updated;
+    });
+  };
+
+  const handleLogin = () => {
+    if (password === "admin123") {
+      setEditMode(true);
+      setPassword("");
+    } else {
+      alert("סיסמה שגויה");
+    }
+  };
+
   return (
-    <div style={{ textAlign: "center", marginTop: "30px", fontFamily: "Arial", direction: "rtl" }}>
+    <div dir="rtl" style={{ fontFamily: "Arial", textAlign: "center", padding: "20px" }}>
       <h1>חדר פנוי בשניים 3?</h1>
 
-      {/* טופס שליחת בקשת וואטסאפ */}
-      <div style={{ margin: "20px", background: "#e0f7fa", padding: "20px", borderRadius: "10px", display: "inline-block" }}>
-        <h2>שליחת בקשת וואטסאפ</h2>
-        <div style={{ marginBottom: "10px" }}>
-          <label>בחר תאריך: </label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label>בחר חדר: </label>
-          <select value={room} onChange={(e) => setRoom(e.target.value)}>
-            <option value="">בחר חדר</option>
-            {Array.from({ length: 8 }, (_, i) => (
-              <option key={i} value={i + 1}>חדר {i + 1}</option>
-            ))}
-          </select>
-        </div>
-        <button onClick={handleSubmitWhatsapp} style={{ padding: "10px 20px", fontSize: "16px" }}>
+      {/* בקשת חדר */}
+      <div style={{ marginBottom: "30px" }}>
+        <label>בחר תאריך: </label>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+
+        <label style={{ marginRight: "10px" }}>בחר שעה: </label>
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+
+        <label style={{ marginRight: "10px" }}>בחר חדר: </label>
+        <select value={room} onChange={(e) => setRoom(e.target.value)}>
+          <option value="">בחר חדר</option>
+          {rooms.map((r) => (
+            <option key={r} value={r}>חדר {r}</option>
+          ))}
+        </select>
+
+        <button onClick={handleSubmit} style={{ marginRight: "15px", padding: "8px 16px", fontSize: "16px" }}>
           שלח בקשת וואטסאפ
         </button>
       </div>
 
-      {/* טופס ניהול עובדים בחדרים */}
-      <div style={{ margin: "20px", background: "#f5f5f5", padding: "20px", borderRadius: "10px", display: "inline-block" }}>
-        <h2>ניהול עובדים בחדרים</h2>
-        <div style={{ marginBottom: "10px" }}>
-          <label>בחר זמן ביום: </label>
-          <select value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)}>
-            <option value="morning">08:00–15:00</option>
-            <option value="afternoon">15:00 והלאה</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "10px" }}>
-          <label>בחר חדר: </label>
-          <select value={roomIndex} onChange={(e) => setRoomIndex(Number(e.target.value))}>
-            {Array.from({ length: 8 }, (_, i) => (
-              <option key={i} value={i}>חדר {i + 1}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "10px" }}>
-          <label>בחר יום: </label>
-          <select value={dayIndex} onChange={(e) => setDayIndex(Number(e.target.value))}>
-            <option value={0}>ראשון</option>
-            <option value={1}>שני</option>
-            <option value={2}>שלישי</option>
-            <option value={3}>רביעי</option>
-            <option value={4}>חמישי</option>
-            <option value={5}>שישי</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "10px" }}>
-          <input
-            type="text"
-            placeholder="שם עובד"
-            value={employeeName}
-            onChange={(e) => setEmployeeName(e.target.value)}
-            style={{ padding: "5px" }}
-          />
-          <button onClick={handleUpdate} style={{ marginRight: "10px", padding: "5px 15px" }}>
-            שמור
-          </button>
-        </div>
-
-        <button onClick={handleReset} style={{ background: "red", color: "white", padding: "5px 15px", border: "none", borderRadius: "5px" }}>
-          אפס את כל הנתונים
-        </button>
+      {/* טבלת חדרים */}
+      <h2>זמינות חדרים</h2>
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "50px" }}>
+        {parts.map((partLabel, partIndex) => (
+          <div key={partIndex}>
+            <h3>{partLabel}</h3>
+            <table border="1" style={{ borderCollapse: "collapse", direction: "rtl", minWidth: "400px" }}>
+              <thead>
+                <tr>
+                  <th>חדר / יום</th>
+                  {days.map((day) => (
+                    <th key={day}>{day}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rooms.map((roomNum) => (
+                  <tr key={roomNum}>
+                    <td>חדר {roomNum}</td>
+                    {days.map((day) => {
+                      const key = `${day}-${roomNum}-${partIndex}`;
+                      return (
+                        <td
+                          key={day}
+                          onClick={() => handleCellClick(day, roomNum, partIndex)}
+                          style={{ cursor: editMode ? "pointer" : "default", padding: "5px" }}
+                        >
+                          {schedule[key] || ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
       </div>
 
-      {/* טבלאות הצגה */}
-      <h2 style={{ marginTop: "40px" }}>זמינות חדרים 08:00–15:00</h2>
-      <table border="1" style={{ width: "90%", margin: "auto", textAlign: "center", borderCollapse: "collapse", marginBottom: "40px" }}>
-        <thead style={{ background: "#e0e0e0" }}>
-          <tr>
-            <th>חדר\יום</th>
-            <th>ראשון</th>
-            <th>שני</th>
-            <th>שלישי</th>
-            <th>רביעי</th>
-            <th>חמישי</th>
-            <th>שישי</th>
-          </tr>
-        </thead>
-        <tbody>
-          {morningSchedule.map((room, i) => (
-            <tr key={i}>
-              <td>חדר {i + 1}</td>
-              {room.map((name, j) => (
-                <td key={j}>{name}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2 style={{ marginTop: "40px" }}>זמינות חדרים 15:00 והלאה</h2>
-      <table border="1" style={{ width: "90%", margin: "auto", textAlign: "center", borderCollapse: "collapse" }}>
-        <thead style={{ background: "#e0e0e0" }}>
-          <tr>
-            <th>חדר\יום</th>
-            <th>ראשון</th>
-            <th>שני</th>
-            <th>שלישי</th>
-            <th>רביעי</th>
-            <th>חמישי</th>
-            <th>שישי</th>
-          </tr>
-        </thead>
-        <tbody>
-          {afternoonSchedule.map((room, i) => (
-            <tr key={i}>
-              <td>חדר {i + 1}</td>
-              {room.map((name, j) => (
-                <td key={j}>{name}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* מצב עריכה */}
+      <div style={{ marginTop: "30px" }}>
+        {!editMode ? (
+          <>
+            <input
+              type="password"
+              placeholder="הכנס סיסמת עריכה"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button onClick={handleLogin} style={{ marginRight: "10px" }}>כניסה למצב עריכה</button>
+          </>
+        ) : (
+          <p style={{ color: "green" }}>מצב עריכה פעיל</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,96 +1,145 @@
-// App.jsx
-import { useState, useEffect } from "react";
-import "./index.css";
+import { useEffect, useState } from "react";
+import "./App.css";
 
-const defaultRooms = Array.from({ length: 8 }, (_, i) => `חדר ${i + 1}`);
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
-const times = ["8:00-15:00", "15:00-22:00"];
+const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
+const hoursSlots = [
+  { label: "8:00–15:00", key: "morning" },
+  { label: "15:00–22:00", key: "evening" },
+];
 
 function App() {
+  const [assignments, setAssignments] = useState(
+    JSON.parse(localStorage.getItem("assignments")) || {}
+  );
+  const [psychologists, setPsychologists] = useState(
+    JSON.parse(localStorage.getItem("psychologists")) || {}
+  );
+  const [selectedPsychologist, setSelectedPsychologist] = useState({});
+  const [isAdmin, setIsAdmin] = useState(false);
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
   const [room, setRoom] = useState("");
-  const [psychologists, setPsychologists] = useState(() => {
-    const saved = localStorage.getItem("psychologists");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [roomAssignments, setRoomAssignments] = useState(() => {
-    const saved = localStorage.getItem("roomAssignments");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [authorized, setAuthorized] = useState(false);
+  const [hour, setHour] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("assignments", JSON.stringify(assignments));
+  }, [assignments]);
 
   useEffect(() => {
     localStorage.setItem("psychologists", JSON.stringify(psychologists));
-    localStorage.setItem("roomAssignments", JSON.stringify(roomAssignments));
-  }, [psychologists, roomAssignments]);
+  }, [psychologists]);
 
-  const handleSubmit = () => {
-    if (!date || !room || !time) {
-      alert("אנא מלא את כל השדות כולל שעה");
-      return;
-    }
-    const allPhones = (psychologists[room] || []).map((p) => p.phone).filter(Boolean);
-    if (allPhones.length === 0) {
-      alert("אין מספרי טלפון משויכים לחדר זה");
-      return;
-    }
-    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${time}?`;
-    const encodedMessage = encodeURIComponent(message);
-    allPhones.forEach(phone => {
-      window.open(`https://wa.me/${phone}?text=${encodedMessage}`, "_blank");
+  const toggleAdmin = () => {
+    setIsAdmin((prev) => !prev);
+  };
+
+  const handleAssignPsychologist = (roomNum, name, phone) => {
+    setPsychologists((prev) => {
+      const updated = { ...prev };
+      if (!updated[roomNum]) updated[roomNum] = [];
+      if (!updated[roomNum].some((p) => p.name === name)) {
+        updated[roomNum].push({ name, phone });
+      }
+      return updated;
     });
   };
 
-  const handleAddPsychologist = (roomName, name, phone) => {
-    setPsychologists(prev => ({
-      ...prev,
-      [roomName]: [...(prev[roomName] || []), { name, phone }]
-    }));
+  const handleSelectPsychologist = (roomNum, day, hourSlot, name) => {
+    setAssignments((prev) => {
+      const updated = { ...prev };
+      if (!updated[roomNum]) updated[roomNum] = {};
+      if (!updated[roomNum][day]) updated[roomNum][day] = {};
+      updated[roomNum][day][hourSlot] = name;
+      return updated;
+    });
   };
 
-  const handleAssign = (roomName, day, name) => {
-    setRoomAssignments(prev => ({
-      ...prev,
-      [roomName]: {
-        ...(prev[roomName] || {}),
-        [day]: name
-      }
-    }));
+  const handleSendRequest = () => {
+    if (!date || !room || !hour) {
+      alert("אנא מלא את כל השדות");
+      return;
+    }
+    const recipients = psychologists[room] || [];
+    if (recipients.length === 0) {
+      alert("לא נמצאו אנשי קשר לחדר זה");
+      return;
+    }
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
+    const encodedMessage = encodeURIComponent(message);
+    recipients.forEach((person) => {
+      window.open(`https://wa.me/${person.phone}?text=${encodedMessage}`, "_blank");
+    });
   };
 
   return (
-    <div className="container" dir="rtl">
-      <h1>חדר פנוי בשניים 3?</h1>
+    <div className="app">
+      <header className="header">
+        <h1>חדר פנוי בשניים 3?</h1>
+        <button onClick={toggleAdmin} className="admin-toggle">
+          {isAdmin ? "יציאה ממצב מנהל" : "הזדהות כמנהל"}
+        </button>
+      </header>
 
-      <div className="form-section">
+      <div className="request-form">
+        <h2>שליחת בקשת וואטסאפ</h2>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         <select value={room} onChange={(e) => setRoom(e.target.value)}>
           <option value="">בחר חדר</option>
-          {defaultRooms.map(r => <option key={r}>{r}</option>)}
+          {rooms.map((r) => (
+            <option key={r} value={r}>{`חדר ${r}`}</option>
+          ))}
         </select>
-        <button onClick={handleSubmit}>שלח בקשת וואטסאפ</button>
+        <input
+          type="time"
+          value={hour}
+          onChange={(e) => setHour(e.target.value)}
+        />
+        <button onClick={handleSendRequest}>שלח בקשה</button>
       </div>
 
-      <div className="schedule-tables">
-        {times.map((period, idx) => (
-          <div key={idx} className="schedule-table">
-            <h3>{period}</h3>
+      <div className="tables">
+        {hoursSlots.map((slot) => (
+          <div key={slot.key} className="table-section">
+            <h2>{slot.label}</h2>
             <table>
               <thead>
                 <tr>
-                  <th>חדר / יום</th>
-                  {days.map((day, i) => <th key={i}>{day}</th>)}
+                  <th>חדר \ יום</th>
+                  {days.map((day) => (
+                    <th key={day}>{day}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {defaultRooms.map((roomName, rIdx) => (
-                  <tr key={rIdx}>
-                    <td>{roomName}</td>
-                    {days.map((day, dIdx) => (
-                      <td key={dIdx}>
-                        {(roomAssignments[roomName] || {})[day] || "-"}
+                {rooms.map((roomNum) => (
+                  <tr key={roomNum}>
+                    <td>{`חדר ${roomNum}`}</td>
+                    {days.map((day) => (
+                      <td key={day}>
+                        {isAdmin ? (
+                          <select
+                            onChange={(e) =>
+                              handleSelectPsychologist(
+                                roomNum,
+                                day,
+                                slot.key,
+                                e.target.value
+                              )
+                            }
+                            value={
+                              (assignments[roomNum]?.[day]?.[slot.key]) || ""
+                            }
+                          >
+                            <option value="">בחר</option>
+                            {(psychologists[roomNum] || []).map((p) => (
+                              <option key={p.name} value={p.name}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          assignments[roomNum]?.[day]?.[slot.key] || "-"
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -101,49 +150,33 @@ function App() {
         ))}
       </div>
 
-      <hr />
-
-      {authorized ? (
-        <div className="admin-section">
-          <h2>ניהול פסיכולוגים בחדרים</h2>
-          {defaultRooms.map(roomName => (
-            <div key={roomName} className="room-card">
-              <h3>{roomName}</h3>
+      {isAdmin && (
+        <div className="admin-panel">
+          <h2>הוספת פסיכולוג לחדר</h2>
+          {rooms.map((roomNum) => (
+            <div key={roomNum} className="room-admin">
+              <h3>{`חדר ${roomNum}`}</h3>
+              <input
+                type="text"
+                placeholder="שם הפסיכולוג"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const name = e.target.value.trim();
+                    if (name) {
+                      const phone = prompt("הזן מספר טלפון (כולל קידומת)");
+                      if (phone) handleAssignPsychologist(roomNum, name, phone);
+                      e.target.value = "";
+                    }
+                  }
+                }}
+              />
               <ul>
-                {(psychologists[roomName] || []).map((p, i) => <li key={i}>{p.name} ({p.phone})</li>)}
+                {(psychologists[roomNum] || []).map((p) => (
+                  <li key={p.name}>{`${p.name} (${p.phone})`}</li>
+                ))}
               </ul>
-              <input placeholder="שם פסיכולוג" id={`name-${roomName}`} />
-              <input placeholder="מספר טלפון" id={`phone-${roomName}`} />
-              <button onClick={() => {
-                const name = document.getElementById(`name-${roomName}`).value;
-                const phone = document.getElementById(`phone-${roomName}`).value;
-                if (name && phone) handleAddPsychologist(roomName, name, phone);
-              }}>הוסף פסיכולוג</button>
-              <h4>שיבוץ לפי ימים</h4>
-              {days.map(day => (
-                <div key={day}>
-                  <label>{day}: </label>
-                  <select value={(roomAssignments[roomName] || {})[day] || ""}
-                    onChange={(e) => handleAssign(roomName, day, e.target.value)}>
-                    <option value="">בחר פסיכולוג</option>
-                    {(psychologists[roomName] || []).map((p, i) => (
-                      <option key={i} value={p.name}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
             </div>
           ))}
-        </div>
-      ) : (
-        <div className="auth-section">
-          <h3>הזדהות מנהל</h3>
-          <input placeholder="סיסמה" type="password" id="admin-pass" />
-          <button onClick={() => {
-            const val = document.getElementById("admin-pass").value;
-            if (val === "1234") setAuthorized(true);
-            else alert("סיסמה שגויה");
-          }}>התחבר</button>
         </div>
       )}
     </div>

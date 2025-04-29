@@ -30,7 +30,12 @@ function App() {
   }, [psychologists]);
 
   const toggleAdmin = () => {
-    setIsAdmin((prev) => !prev);
+    const password = prompt("אנא הזן סיסמת מנהל");
+    if (password === "1234") {
+      setIsAdmin(true);
+    } else {
+      alert("סיסמה שגויה");
+    }
   };
 
   const handleAssignPsychologist = (roomNum, name, phone) => {
@@ -75,25 +80,41 @@ function App() {
     <div className="app">
       <header className="header">
         <h1>חדר פנוי בשניים 3?</h1>
-        <button onClick={toggleAdmin} className="admin-toggle">
-          {isAdmin ? "יציאה ממצב מנהל" : "הזדהות כמנהל"}
-        </button>
+        {!isAdmin && (
+          <button onClick={toggleAdmin} className="admin-toggle">
+            הזדהות כמנהל
+          </button>
+        )}
+        {isAdmin && (
+          <button onClick={() => setIsAdmin(false)} className="admin-toggle">
+            יציאה ממצב מנהל
+          </button>
+        )}
       </header>
 
       <div className="request-form">
         <h2>שליחת בקשת וואטסאפ</h2>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <select value={room} onChange={(e) => setRoom(e.target.value)}>
-          <option value="">בחר חדר</option>
-          {rooms.map((r) => (
-            <option key={r} value={r}>{`חדר ${r}`}</option>
-          ))}
-        </select>
-        <input
-          type="time"
-          value={hour}
-          onChange={(e) => setHour(e.target.value)}
-        />
+        <label>
+          תאריך:
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <label>
+          חדר:
+          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+            <option value="">בחר חדר</option>
+            {rooms.map((r) => (
+              <option key={r} value={r}>{`חדר ${r}`}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          שעה:
+          <input
+            type="time"
+            value={hour}
+            onChange={(e) => setHour(e.target.value)}
+          />
+        </label>
         <button onClick={handleSendRequest}>שלח בקשה</button>
       </div>
 
@@ -127,7 +148,7 @@ function App() {
                               )
                             }
                             value={
-                              (assignments[roomNum]?.[day]?.[slot.key]) || ""
+                              assignments[roomNum]?.[day]?.[slot.key] || ""
                             }
                           >
                             <option value="">בחר</option>
@@ -152,7 +173,7 @@ function App() {
 
       {isAdmin && (
         <div className="admin-panel">
-          <h2>הוספת פסיכולוג לחדר</h2>
+          <h2>ניהול פסיכולוגים בחדרים</h2>
           {rooms.map((roomNum) => (
             <div key={roomNum} className="room-admin">
               <h3>{`חדר ${roomNum}`}</h3>

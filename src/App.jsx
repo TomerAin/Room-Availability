@@ -6,9 +6,6 @@ const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", 
 const rooms = Array.from({ length: 8 }, (_, i) => i + 1);
 
 function App() {
-  const [date, setDate] = useState("");
-  const [hour, setHour] = useState("");
-  const [room, setRoom] = useState("");
   const [psychologists, setPsychologists] = useState(() => {
     const saved = localStorage.getItem("psychologists");
     return saved ? JSON.parse(saved) : {};
@@ -16,19 +13,32 @@ function App() {
 
   const [editRoom, setEditRoom] = useState(null);
   const [newName, setNewName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [date, setDate] = useState("");
+  const [hour, setHour] = useState("");
+  const [room, setRoom] = useState("");
 
   useEffect(() => {
     localStorage.setItem("psychologists", JSON.stringify(psychologists));
   }, [psychologists]);
 
+  const handleLogin = () => {
+    const pass = prompt("הכנס סיסמת מנהל");
+    if (pass === "1234") {
+      setIsAdmin(true);
+    } else {
+      alert("סיסמה שגויה");
+    }
+  };
+
   const handleSubmit = () => {
-    if (!date || !room || !hour) {
+    if (!date || !hour || !room) {
       alert("אנא מלא את כל השדות");
       return;
     }
     const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
   const handleAddPsychologist = () => {
@@ -38,7 +48,6 @@ function App() {
         ...prev,
         [editRoom]: [...(prev[editRoom] || []), newName.trim()],
       };
-      localStorage.setItem("psychologists", JSON.stringify(updated));
       return updated;
     });
     setNewName("");
@@ -50,10 +59,54 @@ function App() {
         ...prev,
         [editRoom]: prev[editRoom].filter((_, i) => i !== index),
       };
-      localStorage.setItem("psychologists", JSON.stringify(updated));
       return updated;
     });
   };
+
+  const renderTable = (title) => (
+    <div style={{ marginTop: "30px" }}>
+      <h3 style={{ textAlign: "center" }}>{title}</h3>
+      <div style={{ overflowX: "auto", border: "1px solid #ccc", direction: "ltr" }}>
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead>
+            <tr>
+              <th style={headerStyle}>חדר / יום</th>
+              {days.map((day) => (
+                <th key={day} style={headerStyle}>{day}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rooms.map((roomNum) => (
+              <tr key={roomNum}>
+                <td style={cellStyle}>
+                  חדר {roomNum}
+                  {isAdmin && (
+                    <div>
+                      <button
+                        style={{ fontSize: "12px", marginTop: "4px" }}
+                        onClick={() => setEditRoom(roomNum)}
+                      >
+                        ניהול פסיכולוגים
+                      </button>
+                    </div>
+                  )}
+                </td>
+                {days.map((day) => (
+                  <td key={day} style={cellStyle}>
+                    {psychologists[roomNum]?.join(", ") || "-"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const headerStyle = { border: "1px solid #aaa", padding: "8px", background: "#f0f0f0" };
+  const cellStyle = { border: "1px solid #aaa", padding: "8px", textAlign: "center" };
 
   return (
     <div dir="rtl" style={{ fontFamily: "Arial", padding: "20px" }}>
@@ -62,9 +115,9 @@ function App() {
       <div style={{ marginBottom: "20px", textAlign: "center" }}>
         <label>בחר תאריך: </label>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <label style={{ marginInline: "10px" }}>שעה: </label>
+        <label style={{ margin: "0 10px" }}>שעה: </label>
         <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
-        <label style={{ marginInline: "10px" }}>חדר: </label>
+        <label style={{ margin: "0 10px" }}>חדר: </label>
         <select value={room} onChange={(e) => setRoom(e.target.value)}>
           <option value="">בחר חדר</option>
           {rooms.map((r) => (
@@ -74,44 +127,16 @@ function App() {
         <button onClick={handleSubmit} style={{ padding: "8px 16px", marginRight: "10px" }}>
           שלח בקשת וואטסאפ
         </button>
+        {!isAdmin && (
+          <button onClick={handleLogin} style={{ marginRight: "10px" }}>כניסה כמנהל</button>
+        )}
       </div>
 
-      <h2 style={{ textAlign: "center", marginTop: "30px" }}>הקצאת חדרים</h2>
-      <div style={{ overflowX: "auto", border: "1px solid #ccc", direction: "ltr" }}>
-        <table style={{ borderCollapse: "collapse", width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={{ border: "1px solid #aaa", padding: "8px", background: "#f0f0f0" }}>חדר / יום</th>
-              {days.map((day) => (
-                <th key={day} style={{ border: "1px solid #aaa", padding: "8px" }}>{day}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rooms.map((roomNum) => (
-              <tr key={roomNum}>
-                <td style={{ border: "1px solid #aaa", padding: "8px", background: "#f9f9f9" }}>
-                  חדר {roomNum}
-                  <br />
-                  <button
-                    style={{ marginTop: "5px", fontSize: "12px" }}
-                    onClick={() => setEditRoom(roomNum)}
-                  >
-                    ניהול פסיכולוגים
-                  </button>
-                </td>
-                {days.map((day) => (
-                  <td key={day} style={{ border: "1px solid #aaa", padding: "8px", textAlign: "center" }}>
-                    {psychologists[roomNum]?.join(", ") || "-"}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* שתי טבלאות */}
+      {renderTable("שעות 08:00 - 15:00")}
+      {renderTable("שעות 15:00 ואילך")}
 
-      {/* חלונית עריכת פסיכולוגים */}
+      {/* חלונית ניהול פסיכולוגים */}
       {editRoom && (
         <div
           style={{
@@ -119,17 +144,16 @@ function App() {
             background: "white", padding: "20px", border: "1px solid #ccc", borderRadius: "8px", zIndex: 1000
           }}
         >
-          <h3>פסיכולוגים בחדר {editRoom}</h3>
+          <h3>ניהול פסיכולוגים לחדר {editRoom}</h3>
           <ul>
             {(psychologists[editRoom] || []).map((name, index) => (
               <li key={index}>
-                {name}{" "}
-                <button onClick={() => handleRemovePsychologist(index)}>❌</button>
+                {name} <button onClick={() => handleRemovePsychologist(index)}>❌</button>
               </li>
             ))}
           </ul>
           <input
-            placeholder="הוסף שם פסיכולוג"
+            placeholder="שם פסיכולוג"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             style={{ marginTop: "10px", padding: "5px", width: "80%" }}

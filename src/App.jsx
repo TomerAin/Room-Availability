@@ -49,6 +49,14 @@ function App() {
     });
   };
 
+  const handleRemovePsychologist = (roomNum, name) => {
+    setPsychologists((prev) => {
+      const updated = { ...prev };
+      updated[roomNum] = updated[roomNum].filter((p) => p.name !== name);
+      return updated;
+    });
+  };
+
   const handleSelectPsychologist = (roomNum, day, hourSlot, name) => {
     setAssignments((prev) => {
       const updated = { ...prev };
@@ -189,7 +197,14 @@ function App() {
             />
             <ul>
               {(psychologists[selectedRoom] || []).map((p) => (
-                <li key={p.name}>{`${p.name} (${p.phone})`}</li>
+                <li key={p.name}>
+                  {`${p.name} (${p.phone})`}
+                  <button
+                    onClick={() => handleRemovePsychologist(selectedRoom, p.name)}
+                  >
+                    מחק
+                  </button>
+                </li>
               ))}
             </ul>
             <button onClick={() => setSelectedRoom(null)}>סגור</button>

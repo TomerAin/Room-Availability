@@ -15,11 +15,11 @@ function App() {
   const [psychologists, setPsychologists] = useState(
     JSON.parse(localStorage.getItem("psychologists")) || {}
   );
-  const [selectedPsychologist, setSelectedPsychologist] = useState({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [date, setDate] = useState("");
   const [room, setRoom] = useState("");
   const [hour, setHour] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   useEffect(() => {
     localStorage.setItem("assignments", JSON.stringify(assignments));
@@ -76,6 +76,15 @@ function App() {
     });
   };
 
+  const handleRoomClick = (roomNum) => {
+    setSelectedRoom(roomNum);
+  };
+
+  const handleSavePsychologist = (roomNum, name, phone) => {
+    handleAssignPsychologist(roomNum, name, phone);
+    setSelectedRoom(null); // סגירת החלון לאחר ההזנה
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -118,21 +127,35 @@ function App() {
               <tbody>
                 {rooms.map((roomNum) => (
                   <tr key={roomNum}>
-                    <td>{`חדר ${roomNum}`}</td>
+                    <td
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleRoomClick(roomNum)}
+                    >
+                      {`חדר ${roomNum}`}
+                    </td>
                     {days.map((day) => (
                       <td key={day}>
                         {isAdmin ? (
-                          <div
-                            onClick={() => {
-                              const name = prompt("הזן את שם הפסיכולוג:");
-                              if (name) {
-                                const phone = prompt("הזן מספר טלפון (כולל קידומת):");
-                                if (phone) handleAssignPsychologist(roomNum, name, phone);
-                              }
-                            }}
+                          <select
+                            onChange={(e) =>
+                              handleSelectPsychologist(
+                                roomNum,
+                                day,
+                                slot.key,
+                                e.target.value
+                              )
+                            }
+                            value={
+                              (assignments[roomNum]?.[day]?.[slot.key]) || ""
+                            }
                           >
-                            {assignments[roomNum]?.[day]?.[slot.key] || "-"}
-                          </div>
+                            <option value="">בחר</option>
+                            {(psychologists[roomNum] || []).map((p) => (
+                              <option key={p.name} value={p.name}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           assignments[roomNum]?.[day]?.[slot.key] || "-"
                         )}
@@ -145,6 +168,31 @@ function App() {
           </div>
         ))}
       </div>
+
+      {selectedRoom !== null && isAdmin && (
+        <div className="admin-panel">
+          <h2>הוספת פסיכולוגים לחדר {selectedRoom}</h2>
+          <input
+            type="text"
+            placeholder="שם הפסיכולוג"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const name = e.target.value.trim();
+                if (name) {
+                  const phone = prompt("הזן מספר טלפון (כולל קידומת)");
+                  if (phone) handleSavePsychologist(selectedRoom, name, phone);
+                  e.target.value = "";
+                }
+              }
+            }}
+          />
+          <ul>
+            {(psychologists[selectedRoom] || []).map((p) => (
+              <li key={p.name}>{`${p.name} (${p.phone})`}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

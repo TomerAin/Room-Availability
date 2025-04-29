@@ -1,230 +1,144 @@
+// src/App.jsx
 import { useState, useEffect } from "react";
+import "./index.css";
 
-const defaultRoomPsychologists = {
-  1: ["דנה", "יואב", "מיכל"],
-  2: ["עדי", "רונית", "אבי"],
-  3: ["ליאור", "חגית", "נועה"],
-  4: ["תומר", "שירה", "אביגיל"],
-  5: ["אורי", "נעם", "גילי"],
-  6: ["מאיה", "עמרי", "איילת"],
-  7: ["טל", "דניאלה", "עמית"],
-  8: ["רוני", "גיתית", "שאול"],
-};
-
-const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
-const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי"];
-const parts = ["8:00–15:00", "15:00–22:00"];
+const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
+const rooms = Array.from({ length: 8 }, (_, i) => i + 1);
 
 function App() {
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [hour, setHour] = useState("");
   const [room, setRoom] = useState("");
-  const [schedule, setSchedule] = useState(() => JSON.parse(localStorage.getItem("roomSchedule") || "{}"));
-  const [editMode, setEditMode] = useState(false);
-  const [password, setPassword] = useState("");
-  const [showManage, setShowManage] = useState(false);
-  const [roomPsychologists, setRoomPsychologists] = useState(() =>
-    JSON.parse(localStorage.getItem("roomPsychologists") || JSON.stringify(defaultRoomPsychologists))
-  );
-  const [selectedManageRoom, setSelectedManageRoom] = useState(1);
-  const [newPsychologist, setNewPsychologist] = useState("");
+  const [psychologists, setPsychologists] = useState(() => {
+    const saved = localStorage.getItem("psychologists");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [editRoom, setEditRoom] = useState(null);
+  const [newName, setNewName] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("roomSchedule", JSON.stringify(schedule));
-  }, [schedule]);
-
-  useEffect(() => {
-    localStorage.setItem("roomPsychologists", JSON.stringify(roomPsychologists));
-  }, [roomPsychologists]);
+    localStorage.setItem("psychologists", JSON.stringify(psychologists));
+  }, [psychologists]);
 
   const handleSubmit = () => {
-    if (!date || !room || !time) {
+    if (!date || !room || !hour) {
       alert("אנא מלא את כל השדות");
       return;
     }
-    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${time}?`;
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
   };
 
-  const handleCellClick = (day, roomNum, partIndex) => {
-    if (!editMode) return;
-    const key = `${day}-${roomNum}-${partIndex}`;
-    const options = roomPsychologists[roomNum] || [];
-    const current = schedule[key] || "";
-
-    const newValue = prompt(
-      `בחר פסיכולוג לחדר ${roomNum} ביום ${day} (${parts[partIndex]}):\n\n${options.join(", ")}`,
-      current
-    );
-
-    if (newValue === null) return;
-
-    if (options.includes(newValue)) {
-      setSchedule((prev) => ({ ...prev, [key]: newValue }));
-    } else if (newValue.trim() === "") {
-      setSchedule((prev) => {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      });
-    } else {
-      alert("השם לא מופיע ברשימת הפסיכולוגים של החדר הזה.");
-    }
+  const handleAddPsychologist = () => {
+    if (!newName.trim()) return;
+    setPsychologists((prev) => {
+      const updated = {
+        ...prev,
+        [editRoom]: [...(prev[editRoom] || []), newName.trim()],
+      };
+      localStorage.setItem("psychologists", JSON.stringify(updated));
+      return updated;
+    });
+    setNewName("");
   };
 
-  const handleLogin = () => {
-    if (password === "admin123") {
-      setEditMode(true);
-      setPassword("");
-    } else {
-      alert("סיסמה שגויה");
-    }
-  };
-
-  const addPsychologist = () => {
-    if (!newPsychologist.trim()) return;
-    setRoomPsychologists((prev) => ({
-      ...prev,
-      [selectedManageRoom]: [...(prev[selectedManageRoom] || []), newPsychologist.trim()],
-    }));
-    setNewPsychologist("");
-  };
-
-  const removePsychologist = (name) => {
-    setRoomPsychologists((prev) => ({
-      ...prev,
-      [selectedManageRoom]: prev[selectedManageRoom].filter((p) => p !== name),
-    }));
+  const handleRemovePsychologist = (index) => {
+    setPsychologists((prev) => {
+      const updated = {
+        ...prev,
+        [editRoom]: prev[editRoom].filter((_, i) => i !== index),
+      };
+      localStorage.setItem("psychologists", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (
-    <div dir="rtl" style={{ fontFamily: "Arial", textAlign: "center", padding: "20px" }}>
-      <h1>חדר פנוי בשניים 3?</h1>
+    <div dir="rtl" style={{ fontFamily: "Arial", padding: "20px" }}>
+      <h1 style={{ textAlign: "center" }}>חדר פנוי בשניים 3?</h1>
 
-      {/* בקשת וואטסאפ */}
-      <div style={{ marginBottom: "30px" }}>
+      <div style={{ marginBottom: "20px", textAlign: "center" }}>
         <label>בחר תאריך: </label>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-
-        <label style={{ marginRight: "10px" }}>בחר שעה: </label>
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-
-        <label style={{ marginRight: "10px" }}>בחר חדר: </label>
+        <label style={{ marginInline: "10px" }}>שעה: </label>
+        <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
+        <label style={{ marginInline: "10px" }}>חדר: </label>
         <select value={room} onChange={(e) => setRoom(e.target.value)}>
           <option value="">בחר חדר</option>
           {rooms.map((r) => (
             <option key={r} value={r}>חדר {r}</option>
           ))}
         </select>
-
-        <button onClick={handleSubmit} style={{ marginRight: "15px", padding: "8px 16px", fontSize: "16px" }}>
+        <button onClick={handleSubmit} style={{ padding: "8px 16px", marginRight: "10px" }}>
           שלח בקשת וואטסאפ
         </button>
       </div>
 
-      {/* טבלת חדרים */}
-      {!showManage && (
-        <>
-          <h2>זמינות חדרים</h2>
-          <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "50px" }}>
-            {parts.map((partLabel, partIndex) => (
-              <div key={partIndex}>
-                <h3>{partLabel}</h3>
-                <table border="1" style={{ borderCollapse: "collapse", direction: "rtl", minWidth: "400px" }}>
-                  <thead>
-                    <tr>
-                      <th>חדר / יום</th>
-                      {days.map((day) => (
-                        <th key={day}>{day}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rooms.map((roomNum) => (
-                      <tr key={roomNum}>
-                        <td>חדר {roomNum}</td>
-                        {days.map((day) => {
-                          const key = `${day}-${roomNum}-${partIndex}`;
-                          const current = schedule[key] || "";
-                          return (
-                            <td
-                              key={day}
-                              onClick={() => handleCellClick(day, roomNum, partIndex)}
-                              style={{
-                                cursor: editMode ? "pointer" : "default",
-                                padding: "5px",
-                                backgroundColor: editMode ? "#f0f0f0" : "white",
-                              }}
-                            >
-                              {current}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <h2 style={{ textAlign: "center", marginTop: "30px" }}>הקצאת חדרים</h2>
+      <div style={{ overflowX: "auto", border: "1px solid #ccc", direction: "ltr" }}>
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #aaa", padding: "8px", background: "#f0f0f0" }}>חדר / יום</th>
+              {days.map((day) => (
+                <th key={day} style={{ border: "1px solid #aaa", padding: "8px" }}>{day}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rooms.map((roomNum) => (
+              <tr key={roomNum}>
+                <td style={{ border: "1px solid #aaa", padding: "8px", background: "#f9f9f9" }}>
+                  חדר {roomNum}
+                  <br />
+                  <button
+                    style={{ marginTop: "5px", fontSize: "12px" }}
+                    onClick={() => setEditRoom(roomNum)}
+                  >
+                    ניהול פסיכולוגים
+                  </button>
+                </td>
+                {days.map((day) => (
+                  <td key={day} style={{ border: "1px solid #aaa", padding: "8px", textAlign: "center" }}>
+                    {psychologists[roomNum]?.join(", ") || "-"}
+                  </td>
+                ))}
+              </tr>
             ))}
-          </div>
-        </>
-      )}
-
-      {/* כפתורי ניהול */}
-      <div style={{ marginTop: "30px" }}>
-        {!editMode ? (
-          <>
-            <input
-              type="password"
-              placeholder="הכנס סיסמת עריכה"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button onClick={handleLogin} style={{ marginRight: "10px" }}>כניסה למצב עריכה</button>
-          </>
-        ) : (
-          <>
-            <p style={{ color: "green" }}>מצב עריכה פעיל</p>
-            <button onClick={() => setShowManage(!showManage)} style={{ marginTop: "10px" }}>
-              {showManage ? "חזרה לטבלה" : "ניהול פסיכולוגים קבועים"}
-            </button>
-          </>
-        )}
+          </tbody>
+        </table>
       </div>
 
-      {/* מסך ניהול פסיכולוגים */}
-      {editMode && showManage && (
-        <div style={{ marginTop: "30px", maxWidth: "400px", marginInline: "auto", textAlign: "right" }}>
-          <h3>ניהול פסיכולוגים קבועים</h3>
-          <label>בחר חדר: </label>
-          <select value={selectedManageRoom} onChange={(e) => setSelectedManageRoom(Number(e.target.value))}>
-            {rooms.map((r) => (
-              <option key={r} value={r}>חדר {r}</option>
-            ))}
-          </select>
-
-          <ul style={{ paddingRight: "20px" }}>
-            {(roomPsychologists[selectedManageRoom] || []).map((name) => (
-              <li key={name}>
-                {name}
-                <button
-                  onClick={() => removePsychologist(name)}
-                  style={{ marginRight: "10px", color: "red", background: "none", border: "none", cursor: "pointer" }}
-                >
-                  מחק
-                </button>
+      {/* חלונית עריכת פסיכולוגים */}
+      {editRoom && (
+        <div
+          style={{
+            position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)",
+            background: "white", padding: "20px", border: "1px solid #ccc", borderRadius: "8px", zIndex: 1000
+          }}
+        >
+          <h3>פסיכולוגים בחדר {editRoom}</h3>
+          <ul>
+            {(psychologists[editRoom] || []).map((name, index) => (
+              <li key={index}>
+                {name}{" "}
+                <button onClick={() => handleRemovePsychologist(index)}>❌</button>
               </li>
             ))}
           </ul>
-
           <input
-            type="text"
-            value={newPsychologist}
-            onChange={(e) => setNewPsychologist(e.target.value)}
-            placeholder="הוסף פסיכולוג חדש"
+            placeholder="הוסף שם פסיכולוג"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            style={{ marginTop: "10px", padding: "5px", width: "80%" }}
           />
-          <button onClick={addPsychologist} style={{ marginRight: "10px" }}>הוסף</button>
+          <br />
+          <button onClick={handleAddPsychologist} style={{ marginTop: "10px" }}>הוסף</button>
+          <button onClick={() => setEditRoom(null)} style={{ marginRight: "10px", marginTop: "10px" }}>
+            סגור
+          </button>
         </div>
       )}
     </div>

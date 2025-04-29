@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import './customStyles.css';
 
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
 const rooms = [1, 2, 3, 4, 5, 6, 7, 8];

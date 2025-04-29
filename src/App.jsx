@@ -170,27 +170,30 @@ function App() {
       </div>
 
       {selectedRoom !== null && isAdmin && (
-        <div className="admin-panel">
-          <h2>הוספת פסיכולוגים לחדר {selectedRoom}</h2>
-          <input
-            type="text"
-            placeholder="שם הפסיכולוג"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const name = e.target.value.trim();
-                if (name) {
-                  const phone = prompt("הזן מספר טלפון (כולל קידומת)");
-                  if (phone) handleSavePsychologist(selectedRoom, name, phone);
-                  e.target.value = "";
+        <div className="modal">
+          <div className="modal-content">
+            <h2>הוספת פסיכולוגים לחדר {selectedRoom}</h2>
+            <input
+              type="text"
+              placeholder="שם הפסיכולוג"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const name = e.target.value.trim();
+                  if (name) {
+                    const phone = prompt("הזן מספר טלפון (כולל קידומת)");
+                    if (phone) handleSavePsychologist(selectedRoom, name, phone);
+                    e.target.value = "";
+                  }
                 }
-              }
-            }}
-          />
-          <ul>
-            {(psychologists[selectedRoom] || []).map((p) => (
-              <li key={p.name}>{`${p.name} (${p.phone})`}</li>
-            ))}
-          </ul>
+              }}
+            />
+            <ul>
+              {(psychologists[selectedRoom] || []).map((p) => (
+                <li key={p.name}>{`${p.name} (${p.phone})`}</li>
+              ))}
+            </ul>
+            <button onClick={() => setSelectedRoom(null)}>סגור</button>
+          </div>
         </div>
       )}
     </div>

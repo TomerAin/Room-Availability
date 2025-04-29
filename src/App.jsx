@@ -1,229 +1,149 @@
-// src/App.jsx
+// App.jsx
 import { useState, useEffect } from "react";
 import "./index.css";
 
+const defaultRooms = Array.from({ length: 8 }, (_, i) => `חדר ${i + 1}`);
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
-const rooms = Array.from({ length: 8 }, (_, i) => i + 1);
+const times = ["8:00-15:00", "15:00-22:00"];
 
 function App() {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [room, setRoom] = useState("");
   const [psychologists, setPsychologists] = useState(() => {
     const saved = localStorage.getItem("psychologists");
     return saved ? JSON.parse(saved) : {};
   });
-
-  const [schedule, setSchedule] = useState(() => {
-    const savedSchedule = localStorage.getItem("schedule");
-    return savedSchedule ? JSON.parse(savedSchedule) : {};
+  const [roomAssignments, setRoomAssignments] = useState(() => {
+    const saved = localStorage.getItem("roomAssignments");
+    return saved ? JSON.parse(saved) : {};
   });
-
-  const [editRoom, setEditRoom] = useState(null);
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState(""); // שדה טלפון חדש
-  const [selectedPsychologist, setSelectedPsychologist] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [date, setDate] = useState("");
-  const [hour, setHour] = useState("");
-  const [room, setRoom] = useState("");
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("psychologists", JSON.stringify(psychologists));
-    localStorage.setItem("schedule", JSON.stringify(schedule));
-  }, [psychologists, schedule]);
-
-  const handleLogin = () => {
-    const pass = prompt("הכנס סיסמת מנהל");
-    if (pass === "1234") {
-      setIsAdmin(true);
-    } else {
-      alert("סיסמה שגויה");
-    }
-  };
+    localStorage.setItem("roomAssignments", JSON.stringify(roomAssignments));
+  }, [psychologists, roomAssignments]);
 
   const handleSubmit = () => {
-    if (!date || !hour || !room) {
-      alert("אנא מלא את כל השדות");
+    if (!date || !room || !time) {
+      alert("אנא מלא את כל השדות כולל שעה");
       return;
     }
-    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
-    const encoded = encodeURIComponent(message);
-
-    // שליחה לכל הפסיכולוגים המשויכים לחדר
-    const psychologistsToContact = psychologists[room]?.map((ps) => ps.phoneNumber).filter(Boolean);
-
-    // שליחה לכולם בוואטסאפ
-    psychologistsToContact.forEach((phone) => {
-      window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
-    });
-  };
-
-  const handleAddPsychologist = () => {
-    if (!newName.trim() || !newPhone.trim()) return; // לא מאפשר הוספת פסיכולוג בלי שם או טלפון
-    setPsychologists((prev) => {
-      const updated = {
-        ...prev,
-        [editRoom]: [
-          ...(prev[editRoom] || []),
-          { name: newName.trim(), phoneNumber: newPhone.trim() },
-        ],
-      };
-      return updated;
-    });
-    setNewName("");
-    setNewPhone("");
-  };
-
-  const handleRemovePsychologist = (index) => {
-    setPsychologists((prev) => {
-      const updated = {
-        ...prev,
-        [editRoom]: prev[editRoom].filter((_, i) => i !== index),
-      };
-      return updated;
-    });
-  };
-
-  const handleAssignPsychologistToDay = (day) => {
-    if (selectedPsychologist) {
-      setSchedule((prev) => {
-        const updated = {
-          ...prev,
-          [editRoom]: {
-            ...prev[editRoom],
-            [day]: selectedPsychologist,
-          },
-        };
-        return updated;
-      });
+    const allPhones = (psychologists[room] || []).map((p) => p.phone).filter(Boolean);
+    if (allPhones.length === 0) {
+      alert("אין מספרי טלפון משויכים לחדר זה");
+      return;
     }
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${time}?`;
+    const encodedMessage = encodeURIComponent(message);
+    allPhones.forEach(phone => {
+      window.open(`https://wa.me/${phone}?text=${encodedMessage}`, "_blank");
+    });
   };
 
-  const renderTable = (title) => (
-    <div style={{ marginTop: "30px" }}>
-      <h3 style={{ textAlign: "center" }}>{title}</h3>
-      <div style={{ overflowX: "auto", border: "1px solid #ccc", direction: "ltr" }}>
-        <table style={{ borderCollapse: "collapse", width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={headerStyle}>חדר / יום</th>
-              {days.map((day) => (
-                <th key={day} style={headerStyle}>{day}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rooms.map((roomNum) => (
-              <tr key={roomNum}>
-                <td style={cellStyle}>
-                  חדר {roomNum}
-                  {isAdmin && (
-                    <div>
-                      <button
-                        style={{ fontSize: "12px", marginTop: "4px" }}
-                        onClick={() => setEditRoom(roomNum)}
-                      >
-                        ניהול פסיכולוגים
-                      </button>
-                    </div>
-                  )}
-                </td>
-                {days.map((day) => (
-                  <td key={day} style={cellStyle}>
-                    {schedule[roomNum]?.[day] || "-"}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const handleAddPsychologist = (roomName, name, phone) => {
+    setPsychologists(prev => ({
+      ...prev,
+      [roomName]: [...(prev[roomName] || []), { name, phone }]
+    }));
+  };
 
-  const headerStyle = { border: "1px solid #aaa", padding: "8px", background: "#f0f0f0" };
-  const cellStyle = { border: "1px solid #aaa", padding: "8px", textAlign: "center" };
+  const handleAssign = (roomName, day, name) => {
+    setRoomAssignments(prev => ({
+      ...prev,
+      [roomName]: {
+        ...(prev[roomName] || {}),
+        [day]: name
+      }
+    }));
+  };
 
   return (
-    <div dir="rtl" style={{ fontFamily: "Arial", padding: "20px" }}>
-      <h1 style={{ textAlign: "center" }}>חדר פנוי בשניים 3?</h1>
+    <div className="container" dir="rtl">
+      <h1>חדר פנוי בשניים 3?</h1>
 
-      <div style={{ marginBottom: "20px", textAlign: "center" }}>
-        <label>בחר תאריך: </label>
+      <div className="form-section">
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <label style={{ margin: "0 10px" }}>שעה: </label>
-        <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
-        <label style={{ margin: "0 10px" }}>חדר: </label>
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         <select value={room} onChange={(e) => setRoom(e.target.value)}>
           <option value="">בחר חדר</option>
-          {rooms.map((r) => (
-            <option key={r} value={r}>חדר {r}</option>
-          ))}
+          {defaultRooms.map(r => <option key={r}>{r}</option>)}
         </select>
-        <button onClick={handleSubmit} style={{ padding: "8px 16px", marginRight: "10px" }}>
-          שלח בקשת וואטסאפ
-        </button>
-        {!isAdmin && (
-          <button onClick={handleLogin} style={{ marginRight: "10px" }}>כניסה כמנהל</button>
-        )}
+        <button onClick={handleSubmit}>שלח בקשת וואטסאפ</button>
       </div>
 
-      {/* שתי טבלאות */}
-      {renderTable("שעות 08:00 - 15:00")}
-      {renderTable("שעות 15:00 ואילך")}
-
-      {/* חלונית ניהול פסיכולוגים */}
-      {editRoom && (
-        <div
-          style={{
-            position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)",
-            background: "white", padding: "20px", border: "1px solid #ccc", borderRadius: "8px", zIndex: 1000
-          }}
-        >
-          <h3>ניהול פסיכולוגים לחדר {editRoom}</h3>
-          <ul>
-            {(psychologists[editRoom] || []).map((ps, index) => (
-              <li key={index}>
-                {ps.name} - {ps.phoneNumber}{" "}
-                <button onClick={() => handleRemovePsychologist(index)}>❌</button>
-              </li>
-            ))}
-          </ul>
-          <input
-            placeholder="שם פסיכולוג"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            style={{ marginTop: "10px", padding: "5px", width: "80%" }}
-          />
-          <input
-            placeholder="מספר טלפון"
-            value={newPhone}
-            onChange={(e) => setNewPhone(e.target.value)}
-            style={{ marginTop: "10px", padding: "5px", width: "80%" }}
-          />
-          <br />
-          <button onClick={handleAddPsychologist} style={{ marginTop: "10px" }}>הוסף</button>
-
-          {/* ניהול אחראי יומי */}
-          <h4 style={{ marginTop: "20px" }}>בחר פסיכולוג אחראי ליום</h4>
-          {days.map((day) => (
-            <div key={day}>
-              <label>{day}: </label>
-              <select
-                value={schedule[editRoom]?.[day] || ""}
-                onChange={(e) => {
-                  setSelectedPsychologist(e.target.value);
-                  handleAssignPsychologistToDay(day);
-                }}
-              >
-                <option value="">בחר פסיכולוג</option>
-                {(psychologists[editRoom] || []).map((ps, index) => (
-                  <option key={index} value={ps.name}>{ps.name}</option>
+      <div className="schedule-tables">
+        {times.map((period, idx) => (
+          <div key={idx} className="schedule-table">
+            <h3>{period}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>חדר / יום</th>
+                  {days.map((day, i) => <th key={i}>{day}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {defaultRooms.map((roomName, rIdx) => (
+                  <tr key={rIdx}>
+                    <td>{roomName}</td>
+                    {days.map((day, dIdx) => (
+                      <td key={dIdx}>
+                        {(roomAssignments[roomName] || {})[day] || "-"}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </select>
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      <hr />
+
+      {authorized ? (
+        <div className="admin-section">
+          <h2>ניהול פסיכולוגים בחדרים</h2>
+          {defaultRooms.map(roomName => (
+            <div key={roomName} className="room-card">
+              <h3>{roomName}</h3>
+              <ul>
+                {(psychologists[roomName] || []).map((p, i) => <li key={i}>{p.name} ({p.phone})</li>)}
+              </ul>
+              <input placeholder="שם פסיכולוג" id={`name-${roomName}`} />
+              <input placeholder="מספר טלפון" id={`phone-${roomName}`} />
+              <button onClick={() => {
+                const name = document.getElementById(`name-${roomName}`).value;
+                const phone = document.getElementById(`phone-${roomName}`).value;
+                if (name && phone) handleAddPsychologist(roomName, name, phone);
+              }}>הוסף פסיכולוג</button>
+              <h4>שיבוץ לפי ימים</h4>
+              {days.map(day => (
+                <div key={day}>
+                  <label>{day}: </label>
+                  <select value={(roomAssignments[roomName] || {})[day] || ""}
+                    onChange={(e) => handleAssign(roomName, day, e.target.value)}>
+                    <option value="">בחר פסיכולוג</option>
+                    {(psychologists[roomName] || []).map((p, i) => (
+                      <option key={i} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
           ))}
-          <button onClick={() => setEditRoom(null)} style={{ marginRight: "10px", marginTop: "10px" }}>
-            סגור
-          </button>
+        </div>
+      ) : (
+        <div className="auth-section">
+          <h3>הזדהות מנהל</h3>
+          <input placeholder="סיסמה" type="password" id="admin-pass" />
+          <button onClick={() => {
+            const val = document.getElementById("admin-pass").value;
+            if (val === "1234") setAuthorized(true);
+            else alert("סיסמה שגויה");
+          }}>התחבר</button>
         </div>
       )}
     </div>

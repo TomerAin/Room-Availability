@@ -18,6 +18,7 @@ function App() {
 
   const [editRoom, setEditRoom] = useState(null);
   const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState(""); // שדה טלפון חדש
   const [selectedPsychologist, setSelectedPsychologist] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [date, setDate] = useState("");
@@ -45,19 +46,30 @@ function App() {
     }
     const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+
+    // שליחה לכל הפסיכולוגים המשויכים לחדר
+    const psychologistsToContact = psychologists[room]?.map((ps) => ps.phoneNumber).filter(Boolean);
+
+    // שליחה לכולם בוואטסאפ
+    psychologistsToContact.forEach((phone) => {
+      window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
+    });
   };
 
   const handleAddPsychologist = () => {
-    if (!newName.trim()) return;
+    if (!newName.trim() || !newPhone.trim()) return; // לא מאפשר הוספת פסיכולוג בלי שם או טלפון
     setPsychologists((prev) => {
       const updated = {
         ...prev,
-        [editRoom]: [...(prev[editRoom] || []), newName.trim()],
+        [editRoom]: [
+          ...(prev[editRoom] || []),
+          { name: newName.trim(), phoneNumber: newPhone.trim() },
+        ],
       };
       return updated;
     });
     setNewName("");
+    setNewPhone("");
   };
 
   const handleRemovePsychologist = (index) => {
@@ -168,9 +180,10 @@ function App() {
         >
           <h3>ניהול פסיכולוגים לחדר {editRoom}</h3>
           <ul>
-            {(psychologists[editRoom] || []).map((name, index) => (
+            {(psychologists[editRoom] || []).map((ps, index) => (
               <li key={index}>
-                {name} <button onClick={() => handleRemovePsychologist(index)}>❌</button>
+                {ps.name} - {ps.phoneNumber}{" "}
+                <button onClick={() => handleRemovePsychologist(index)}>❌</button>
               </li>
             ))}
           </ul>
@@ -178,6 +191,12 @@ function App() {
             placeholder="שם פסיכולוג"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            style={{ marginTop: "10px", padding: "5px", width: "80%" }}
+          />
+          <input
+            placeholder="מספר טלפון"
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
             style={{ marginTop: "10px", padding: "5px", width: "80%" }}
           />
           <br />
@@ -196,8 +215,8 @@ function App() {
                 }}
               >
                 <option value="">בחר פסיכולוג</option>
-                {(psychologists[editRoom] || []).map((name, index) => (
-                  <option key={index} value={name}>{name}</option>
+                {(psychologists[editRoom] || []).map((ps, index) => (
+                  <option key={index} value={ps.name}>{ps.name}</option>
                 ))}
               </select>
             </div>

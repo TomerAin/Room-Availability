@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// שמירת נתונים
+// פונקציה כללית לשמירה
 function saveData(path, data) {
   return set(ref(database, path), data);
 }
@@ -29,4 +29,13 @@ function subscribeToData(path, callback) {
   });
 }
 
-export { saveData, subscribeToData };
+// הפונקציות הדרושות ל-App.jsx
+function saveAssignments(data) {
+  return saveData("assignments", data);
+}
+
+function savePsychologists(data) {
+  return saveData("psychologists", data);
+}
+
+export { saveAssignments, savePsychologists, subscribeToData };

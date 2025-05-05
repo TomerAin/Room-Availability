@@ -1,6 +1,8 @@
+// App.jsx
 import { useEffect, useState } from "react";
 import "./App.css";
 import './customStyles.css';
+import { saveAssignments, savePsychologists, subscribeToData } from "./firebase";
 
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
 const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -10,12 +12,8 @@ const hoursSlots = [
 ];
 
 function App() {
-  const [assignments, setAssignments] = useState(
-    JSON.parse(localStorage.getItem("assignments")) || {}
-  );
-  const [psychologists, setPsychologists] = useState(
-    JSON.parse(localStorage.getItem("psychologists")) || {}
-  );
+  const [assignments, setAssignments] = useState({});
+  const [psychologists, setPsychologists] = useState({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [date, setDate] = useState("");
   const [room, setRoom] = useState("");
@@ -23,11 +21,20 @@ function App() {
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("assignments", JSON.stringify(assignments));
+    subscribeToData("assignments", (data) => {
+      if (data) setAssignments(data);
+    });
+    subscribeToData("psychologists", (data) => {
+      if (data) setPsychologists(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    saveAssignments(assignments);
   }, [assignments]);
 
   useEffect(() => {
-    localStorage.setItem("psychologists", JSON.stringify(psychologists));
+    savePsychologists(psychologists);
   }, [psychologists]);
 
   const toggleAdmin = () => {

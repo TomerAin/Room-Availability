@@ -1,4 +1,3 @@
-// firebase.js
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, onValue } from "firebase/database";
 
@@ -7,7 +6,7 @@ const firebaseConfig = {
   authDomain: "room-scheduler-579ef.firebaseapp.com",
   databaseURL: "https://room-scheduler-579ef-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "room-scheduler-579ef",
-  storageBucket: "room-scheduler-579ef.firebasestorage.app",
+  storageBucket: "room-scheduler-579ef.appspot.com",
   messagingSenderId: "231957301822",
   appId: "1:231957301822:web:8b4a882f66464f34615f6f"
 };
@@ -15,9 +14,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// פונקציה כללית לשמירה
+// שמירה כללית
 function saveData(path, data) {
   return set(ref(database, path), data);
+}
+
+// פונקציות ייעודיות
+function saveAssignments(assignments) {
+  return saveData("assignments", assignments);
+}
+
+function savePsychologists(psychologists) {
+  return saveData("psychologists", psychologists);
 }
 
 // האזנה לשינויים
@@ -29,13 +37,9 @@ function subscribeToData(path, callback) {
   });
 }
 
-// הפונקציות הדרושות ל-App.jsx
-function saveAssignments(data) {
-  return saveData("assignments", data);
-}
-
-function savePsychologists(data) {
-  return saveData("psychologists", data);
-}
-
-export { saveAssignments, savePsychologists, subscribeToData };
+export {
+  saveData,
+  saveAssignments,
+  savePsychologists,
+  subscribeToData
+};

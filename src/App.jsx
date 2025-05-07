@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import './customStyles.css';
-import { saveData, subscribeToData } from "./firebase";
+import { saveAssignments, savePsychologists, subscribeToData } from "./firebase";
 
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
 const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -18,34 +18,22 @@ function App() {
   const [room, setRoom] = useState("");
   const [hour, setHour] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    let loaded = { assignments: false, psychologists: false };
-
     subscribeToData("assignments", (data) => {
       if (data) setAssignments(data);
-      loaded.assignments = true;
-      if (loaded.assignments && loaded.psychologists) setHasLoaded(true);
     });
-
     subscribeToData("psychologists", (data) => {
       if (data) setPsychologists(data);
-      loaded.psychologists = true;
-      if (loaded.assignments && loaded.psychologists) setHasLoaded(true);
     });
   }, []);
 
   useEffect(() => {
-    if (hasLoaded) {
-      saveData("assignments", assignments);
-    }
+    saveAssignments(assignments);
   }, [assignments]);
 
   useEffect(() => {
-    if (hasLoaded) {
-      saveData("psychologists", psychologists);
-    }
+    savePsychologists(psychologists);
   }, [psychologists]);
 
   const toggleAdmin = () => {
@@ -150,8 +138,11 @@ function App() {
               <tbody>
                 {rooms.map((roomNum) => (
                   <tr key={roomNum}>
-                    <td style={{ cursor: "pointer" }} onClick={() => handleRoomClick(roomNum)}>
-                      {`חדר ${roomNum}`}
+                    <td
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleRoomClick(roomNum)}
+                    >
+                      {`חדר ${roomNum}`} {psychologists[roomNum]?.length > 0 && <span title="יש פסיכולוגים קבועים">📋</span>}
                     </td>
                     {days.map((day) => (
                       <td key={day}>
@@ -160,7 +151,9 @@ function App() {
                             onChange={(e) =>
                               handleSelectPsychologist(roomNum, day, slot.key, e.target.value)
                             }
-                            value={assignments[roomNum]?.[day]?.[slot.key] || ""}
+                            value={
+                              (assignments[roomNum]?.[day]?.[slot.key]) || ""
+                            }
                           >
                             <option value="">בחר</option>
                             {(psychologists[roomNum] || []).map((p) => (
@@ -182,34 +175,43 @@ function App() {
         ))}
       </div>
 
-      {selectedRoom !== null && isAdmin && (
+      {selectedRoom !== null && (
         <div className="modal">
           <div className="modal-content">
-            <h2>הוספת פסיכולוגים לחדר {selectedRoom}</h2>
-            <input
-              type="text"
-              placeholder="שם הפסיכולוג"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const name = e.target.value.trim();
-                  if (name) {
-                    const phone = prompt("הזן מספר טלפון (כולל קידומת)");
-                    if (phone) handleSavePsychologist(selectedRoom, name, phone);
-                    e.target.value = "";
+            <h2>פסיכולוגים קבועים בחדר {selectedRoom}</h2>
+
+            {isAdmin && (
+              <input
+                type="text"
+                placeholder="שם הפסיכולוג"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const name = e.target.value.trim();
+                    if (name) {
+                      const phone = prompt("הזן מספר טלפון (כולל קידומת)");
+                      if (phone) handleSavePsychologist(selectedRoom, name, phone);
+                      e.target.value = "";
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            )}
+
             <ul>
               {(psychologists[selectedRoom] || []).map((p) => (
                 <li key={p.name}>
                   {`${p.name} (${p.phone})`}
-                  <button onClick={() => handleRemovePsychologist(selectedRoom, p.name)}>
-                    מחק
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRemovePsychologist(selectedRoom, p.name)}
+                    >
+                      מחק
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
+
             <button onClick={() => setSelectedRoom(null)}>סגור</button>
           </div>
         </div>

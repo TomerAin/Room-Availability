@@ -15,18 +15,31 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// שמירת נתונים
+// שמירת נתונים במסלול נתון
 function saveData(path, data) {
   return set(ref(database, path), data);
 }
 
-// האזנה לשינויים
+// שמירה ייעודית להשמות
+function saveAssignments(assignments) {
+  return saveData("assignments", assignments);
+}
+
+// שמירה ייעודית לפסיכולוגים
+function savePsychologists(psychologists) {
+  return saveData("psychologists", psychologists);
+}
+
+// האזנה לשינויים במסלול נתון
 function subscribeToData(path, callback) {
   const dataRef = ref(database, path);
   onValue(dataRef, (snapshot) => {
-    const data = snapshot.val();
-    callback(data);
+    callback(snapshot.val());
   });
 }
 
-export { saveData, subscribeToData };
+export {
+  saveAssignments,
+  savePsychologists,
+  subscribeToData
+};

@@ -1,3 +1,4 @@
+// firebase.js
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, onValue } from "firebase/database";
 
@@ -12,24 +13,33 @@ const firebaseConfig = {
   appId: "1:231957301822:web:8b4a882f66464f34615f6f"
 };
 
-// אתחול האפליקציה
+// אתחול Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// פונקציה לשמירת נתונים ב-Firebase
+// פונקציה כללית לשמירת נתונים
 function saveData(path, data) {
   return set(ref(database, path), data);
 }
 
-// פונקציה להאזנה לשינויים במסלול מסוים
+// האזנה לנתונים בזמן אמת
 function subscribeToData(path, callback) {
   const dataRef = ref(database, path);
   onValue(dataRef, (snapshot) => {
     const data = snapshot.val();
-    console.log(`נתונים נטענו מ-${path}:`, data);
     callback(data);
   });
 }
 
-// ייצוא הפונקציות לשימוש באפליקציה
-export { saveData, subscribeToData };
+// שמירת שיבוצים
+function saveAssignments(assignments) {
+  return saveData("assignments", assignments);
+}
+
+// שמירת פסיכולוגים
+function savePsychologists(psychologists) {
+  return saveData("psychologists", psychologists);
+}
+
+// ייצוא הפונקציות
+export { saveData, subscribeToData, saveAssignments, savePsychologists };

@@ -1,8 +1,7 @@
-// App.jsx
 import { useEffect, useState } from "react";
 import "./App.css";
 import './customStyles.css';
-import { saveAssignments, savePsychologists, subscribeToData } from "./firebase";
+import { saveData, subscribeToData } from "./firebase";
 
 const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
 const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -19,22 +18,34 @@ function App() {
   const [room, setRoom] = useState("");
   const [hour, setHour] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
+    let loaded = { assignments: false, psychologists: false };
+
     subscribeToData("assignments", (data) => {
       if (data) setAssignments(data);
+      loaded.assignments = true;
+      if (loaded.assignments && loaded.psychologists) setHasLoaded(true);
     });
+
     subscribeToData("psychologists", (data) => {
       if (data) setPsychologists(data);
+      loaded.psychologists = true;
+      if (loaded.assignments && loaded.psychologists) setHasLoaded(true);
     });
   }, []);
 
   useEffect(() => {
-    saveAssignments(assignments);
+    if (hasLoaded) {
+      saveData("assignments", assignments);
+    }
   }, [assignments]);
 
   useEffect(() => {
-    savePsychologists(psychologists);
+    if (hasLoaded) {
+      saveData("psychologists", psychologists);
+    }
   }, [psychologists]);
 
   const toggleAdmin = () => {
@@ -98,7 +109,7 @@ function App() {
 
   const handleSavePsychologist = (roomNum, name, phone) => {
     handleAssignPsychologist(roomNum, name, phone);
-    setSelectedRoom(null); // סגירת החלון לאחר ההזנה
+    setSelectedRoom(null);
   };
 
   return (
@@ -119,11 +130,7 @@ function App() {
             <option key={r} value={r}>{`חדר ${r}`}</option>
           ))}
         </select>
-        <input
-          type="time"
-          value={hour}
-          onChange={(e) => setHour(e.target.value)}
-        />
+        <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
         <button onClick={handleSendRequest}>שלח בקשה</button>
       </div>
 
@@ -143,10 +150,7 @@ function App() {
               <tbody>
                 {rooms.map((roomNum) => (
                   <tr key={roomNum}>
-                    <td
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleRoomClick(roomNum)}
-                    >
+                    <td style={{ cursor: "pointer" }} onClick={() => handleRoomClick(roomNum)}>
                       {`חדר ${roomNum}`}
                     </td>
                     {days.map((day) => (
@@ -154,16 +158,9 @@ function App() {
                         {isAdmin ? (
                           <select
                             onChange={(e) =>
-                              handleSelectPsychologist(
-                                roomNum,
-                                day,
-                                slot.key,
-                                e.target.value
-                              )
+                              handleSelectPsychologist(roomNum, day, slot.key, e.target.value)
                             }
-                            value={
-                              (assignments[roomNum]?.[day]?.[slot.key]) || ""
-                            }
+                            value={assignments[roomNum]?.[day]?.[slot.key] || ""}
                           >
                             <option value="">בחר</option>
                             {(psychologists[roomNum] || []).map((p) => (
@@ -207,9 +204,7 @@ function App() {
               {(psychologists[selectedRoom] || []).map((p) => (
                 <li key={p.name}>
                   {`${p.name} (${p.phone})`}
-                  <button
-                    onClick={() => handleRemovePsychologist(selectedRoom, p.name)}
-                  >
+                  <button onClick={() => handleRemovePsychologist(selectedRoom, p.name)}>
                     מחק
                   </button>
                 </li>

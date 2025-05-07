@@ -2,7 +2,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, onValue } from "firebase/database";
 
-// הגדרות Firebase שלך
 const firebaseConfig = {
   apiKey: "AIzaSyA6qisQGd2zdLN_wylOmLXE3M1Dpqte9_Q",
   authDomain: "room-scheduler-579ef.firebaseapp.com",
@@ -13,16 +12,15 @@ const firebaseConfig = {
   appId: "1:231957301822:web:8b4a882f66464f34615f6f"
 };
 
-// אתחול Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// פונקציה כללית לשמירת נתונים
+// שמירת נתונים
 function saveData(path, data) {
   return set(ref(database, path), data);
 }
 
-// האזנה לנתונים בזמן אמת
+// האזנה לשינויים
 function subscribeToData(path, callback) {
   const dataRef = ref(database, path);
   onValue(dataRef, (snapshot) => {
@@ -31,15 +29,4 @@ function subscribeToData(path, callback) {
   });
 }
 
-// שמירת שיבוצים
-function saveAssignments(assignments) {
-  return saveData("assignments", assignments);
-}
-
-// שמירת פסיכולוגים
-function savePsychologists(psychologists) {
-  return saveData("psychologists", psychologists);
-}
-
-// ייצוא הפונקציות
-export { saveData, subscribeToData, saveAssignments, savePsychologists };
+export { saveData, subscribeToData };

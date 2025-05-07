@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import RoomTable from "./RoomTable";
 import AdminPanel from "./AdminPanel";
 import { saveAssignments, savePsychologists, subscribeToData } from "./firebase";
 

@@ -1,21 +1,31 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import "./customStyles.css";
-@@ -18,7 +19,6 @@ function App() {
+import { saveAssignments, savePsychologists, subscribeToData } from "./firebase";
+
+const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
+const rooms = [1, 2, 3, 4, 5, 6, 7, 8];
+const hoursSlots = [
+  { label: "8:00–15:00", key: "morning" },
+  { label: "15:00–22:00", key: "evening" },
+];
+
+function App() {
+  const [assignments, setAssignments] = useState({});
+  const [psychologists, setPsychologists] = useState({});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [date, setDate] = useState("");
   const [room, setRoom] = useState("");
   const [hour, setHour] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [newPsychologistName, setNewPsychologistName] = useState("");
 
   useEffect(() => {
     subscribeToData("assignments", (data) => {
-@@ -27,19 +27,8 @@ function App() {
+      if (data) setAssignments(data);
+    });
     subscribeToData("psychologists", (data) => {
       if (data) setPsychologists(data);
     });
-
-    const today = new Date().toISOString().split("T")[0];
-    setDate(today);
   }, []);
 
   useEffect(() => {
@@ -29,98 +39,177 @@ import "./customStyles.css";
   const toggleAdmin = () => {
     const password = prompt("הזן סיסמה:");
     if (password === "1234") {
-@@ -53,7 +42,10 @@ function App() {
+      setIsAdmin((prev) => !prev);
+    } else {
+      alert("סיסמה לא נכונה");
+    }
+  };
+
+  const handleAssignPsychologist = (roomNum, name, phone) => {
     setPsychologists((prev) => {
       const updated = { ...prev };
       if (!updated[roomNum]) updated[roomNum] = [];
-      updated[roomNum].push({ name, phone });
       if (!updated[roomNum].some((p) => p.name === name)) {
         updated[roomNum].push({ name, phone });
-        savePsychologists(updated);
       }
       return updated;
     });
   };
-@@ -62,6 +54,7 @@ function App() {
+
+  const handleRemovePsychologist = (roomNum, name) => {
     setPsychologists((prev) => {
       const updated = { ...prev };
       updated[roomNum] = updated[roomNum].filter((p) => p.name !== name);
-      savePsychologists(updated);
       return updated;
     });
   };
-@@ -72,6 +65,7 @@ function App() {
+
+  const handleSelectPsychologist = (roomNum, day, hourSlot, name) => {
+    setAssignments((prev) => {
+      const updated = { ...prev };
       if (!updated[roomNum]) updated[roomNum] = {};
       if (!updated[roomNum][day]) updated[roomNum][day] = {};
       updated[roomNum][day][hourSlot] = name;
-      saveAssignments(updated);
       return updated;
     });
   };
-@@ -102,11 +96,8 @@ function App() {
+
+  const handleSendRequest = () => {
+    if (!date || !room || !hour) {
+      alert("אנא מלא את כל השדות");
+      return;
+    }
+    const recipients = psychologists[room] || [];
+    if (recipients.length === 0) {
+      alert("לא נמצאו אנשי קשר לחדר זה");
+      return;
+    }
+    const message = `שלום, האם חדר ${room} פנוי בתאריך ${date} בשעה ${hour}?`;
+    const encodedMessage = encodeURIComponent(message);
+    recipients.forEach((person) => {
+      window.open(`https://wa.me/${person.phone}?text=${encodedMessage}`, "_blank");
+    });
+  };
+
+  const handleRoomClick = (roomNum) => {
+    setSelectedRoom(roomNum);
+  };
+
+  const handleSavePsychologist = (roomNum, name, phone) => {
+    handleAssignPsychologist(roomNum, name, phone);
     setSelectedRoom(null);
   };
 
-  const validatePhone = (phone) => /^0\d{8,9}$/.test(phone);
-
   return (
     <div className="app">
-      <div className="backdrop" onClick={() => setSelectedRoom(null)} style={{ display: selectedRoom !== null ? 'block' : 'none' }} />
       <header className="header">
         <h1>חדר פנוי בשניים 3?</h1>
         <button onClick={toggleAdmin} className="admin-toggle">
-@@ -150,25 +141,19 @@ function App() {
-                      {`חדר ${roomNum}`} {psychologists[roomNum]?.length > 0 && <span title="יש פסיכולוגים קבועים">📋</span>}
+          {isAdmin ? "יציאה ממצב מנהל" : "הזדהות כמנהל"}
+        </button>
+      </header>
+
+      <div className="request-form">
+        <h2>שליחת בקשת וואטסאפ</h2>
+
+        <label>
+          🗓️{" "}
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        <label>
+          🏠{" "}
+          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+            <option value="">בחר חדר</option>
+            {rooms.map((r) => (
+              <option key={r} value={r}>{`חדר ${r}`}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          🕒{" "}
+          <input
+            type="time"
+            value={hour}
+            onChange={(e) => setHour(e.target.value)}
+          />
+        </label>
+
+        <button onClick={handleSendRequest}>שלח בקשה</button>
+      </div>
+
+      <div className="tables">
+        {hoursSlots.map((slot) => (
+          <div key={slot.key} className="table-section">
+            <h2>{slot.label}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>חדר \ יום</th>
+                  {days.map((day) => (
+                    <th key={day}>{day}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rooms.map((roomNum) => (
+                  <tr key={roomNum}>
+                    <td
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleRoomClick(roomNum)}
+                    >
+                      {`חדר ${roomNum}`}{" "}
+                      {psychologists[roomNum]?.length > 0 && (
+                        <span title="יש פסיכולוגים קבועים">📋</span>
+                      )}
                     </td>
                     {days.map((day) => (
-                      <td key={day} className="cell-content">
                       <td key={day}>
                         {isAdmin ? (
                           <select
                             onChange={(e) =>
-                              handleSelectPsychologist(roomNum, day, slot.key, e.target.value)
+                              handleSelectPsychologist(
+                                roomNum,
+                                day,
+                                slot.key,
+                                e.target.value
+                              )
                             }
-                            value={assignments[roomNum]?.[day]?.[slot.key] || ""}
-                            onChange={(e) => handleSelectPsychologist(roomNum, day, slot.key, e.target.value)}
-                            value={(assignments[roomNum]?.[day]?.[slot.key]) || ""}
+                            value={
+                              assignments[roomNum]?.[day]?.[slot.key] || ""
+                            }
                           >
                             <option value="">בחר</option>
                             {(psychologists[roomNum] || []).map((p) => (
-                              <option key={p.name + p.phone} value={p.name}>
+                              <option key={p.name} value={p.name}>
                                 {p.name}
                               </option>
-                              <option key={p.name} value={p.name}>{p.name}</option>
                             ))}
                           </select>
                         ) : (
-                          <span>
-                            {assignments[roomNum]?.[day]?.[slot.key] || "לא שובץ"}
-                          </span>
                           assignments[roomNum]?.[day]?.[slot.key] || "-"
                         )}
                       </td>
                     ))}
-@@ -186,41 +171,28 @@ function App() {
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {selectedRoom !== null && (
+        <div className="modal">
+          <div className="modal-content">
             <h2>פסיכולוגים קבועים בחדר {selectedRoom}</h2>
 
             {isAdmin && (
-              <>
-                <input
-                  type="text"
-                  placeholder="שם הפסיכולוג"
-                  value={newPsychologistName}
-                  onChange={(e) => setNewPsychologistName(e.target.value)}
-                />
-                <button
-                  onClick={() => {
-                    const name = newPsychologistName.trim();
-                    if (!name) return;
-                    const phone = prompt("הזן מספר טלפון (כולל קידומת)");
-                    if (phone && validatePhone(phone)) {
-                      handleSavePsychologist(selectedRoom, name, phone);
-                      setNewPsychologistName("");
-                    } else {
-                      alert("מספר טלפון לא תקין");
               <input
                 type="text"
                 placeholder="שם הפסיכולוג"
@@ -129,14 +218,10 @@ import "./customStyles.css";
                     const name = e.target.value.trim();
                     if (name) {
                       const phone = prompt("הזן מספר טלפון (כולל קידומת)");
-                      if (phone) handleSavePsychologist(selectedRoom, name, phone);
+                      if (phone)
+                        handleSavePsychologist(selectedRoom, name, phone);
                       e.target.value = "";
                     }
-                  }}
-                >
-                  הוסף פסיכולוג
-                </button>
-              </>
                   }
                 }}
               />
@@ -144,16 +229,27 @@ import "./customStyles.css";
 
             <ul>
               {(psychologists[selectedRoom] || []).map((p) => (
-                <li key={p.name + p.phone}>
                 <li key={p.name}>
                   {`${p.name} (${p.phone})`}
                   {isAdmin && (
                     <button
-                      onClick={() => handleRemovePsychologist(selectedRoom, p.name)}
+                      onClick={() =>
+                        handleRemovePsychologist(selectedRoom, p.name)
+                      }
                     >
                       מחק
                     </button>
-                    <button onClick={() => handleRemovePsychologist(selectedRoom, p.name)}>מחק</button>
                   )}
                 </li>
               ))}
+            </ul>
+
+            <button onClick={() => setSelectedRoom(null)}>סגור</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;

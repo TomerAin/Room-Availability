@@ -1,4 +1,3 @@
-// App.jsx
 import { useEffect, useState } from "react";
 import "./App.css";
 import "./customStyles.css";
@@ -29,6 +28,14 @@ function App() {
     });
   }, []);
 
+  useEffect(() => {
+    saveAssignments(assignments);
+  }, [assignments]);
+
+  useEffect(() => {
+    savePsychologists(psychologists);
+  }, [psychologists]);
+
   const toggleAdmin = () => {
     const password = prompt("הזן סיסמה:");
     if (password === "1234") {
@@ -44,7 +51,6 @@ function App() {
       if (!updated[roomNum]) updated[roomNum] = [];
       if (!updated[roomNum].some((p) => p.name === name)) {
         updated[roomNum].push({ name, phone });
-        savePsychologists(updated);
       }
       return updated;
     });
@@ -54,7 +60,6 @@ function App() {
     setPsychologists((prev) => {
       const updated = { ...prev };
       updated[roomNum] = updated[roomNum].filter((p) => p.name !== name);
-      savePsychologists(updated);
       return updated;
     });
   };
@@ -65,7 +70,6 @@ function App() {
       if (!updated[roomNum]) updated[roomNum] = {};
       if (!updated[roomNum][day]) updated[roomNum][day] = {};
       updated[roomNum][day][hourSlot] = name;
-      saveAssignments(updated);
       return updated;
     });
   };
@@ -107,14 +111,35 @@ function App() {
 
       <div className="request-form">
         <h2>שליחת בקשת וואטסאפ</h2>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        <select value={room} onChange={(e) => setRoom(e.target.value)}>
-          <option value="">בחר חדר</option>
-          {rooms.map((r) => (
-            <option key={r} value={r}>{`חדר ${r}`}</option>
-          ))}
-        </select>
-        <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} />
+
+        <label>
+          🗓️{" "}
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        <label>
+          🏠{" "}
+          <select value={room} onChange={(e) => setRoom(e.target.value)}>
+            <option value="">בחר חדר</option>
+            {rooms.map((r) => (
+              <option key={r} value={r}>{`חדר ${r}`}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          🕒{" "}
+          <input
+            type="time"
+            value={hour}
+            onChange={(e) => setHour(e.target.value)}
+          />
+        </label>
+
         <button onClick={handleSendRequest}>שלח בקשה</button>
       </div>
 
@@ -138,18 +163,32 @@ function App() {
                       style={{ cursor: "pointer" }}
                       onClick={() => handleRoomClick(roomNum)}
                     >
-                      {`חדר ${roomNum}`} {psychologists[roomNum]?.length > 0 && <span title="יש פסיכולוגים קבועים">📋</span>}
+                      {`חדר ${roomNum}`}{" "}
+                      {psychologists[roomNum]?.length > 0 && (
+                        <span title="יש פסיכולוגים קבועים">📋</span>
+                      )}
                     </td>
                     {days.map((day) => (
                       <td key={day}>
                         {isAdmin ? (
                           <select
-                            onChange={(e) => handleSelectPsychologist(roomNum, day, slot.key, e.target.value)}
-                            value={(assignments[roomNum]?.[day]?.[slot.key]) || ""}
+                            onChange={(e) =>
+                              handleSelectPsychologist(
+                                roomNum,
+                                day,
+                                slot.key,
+                                e.target.value
+                              )
+                            }
+                            value={
+                              assignments[roomNum]?.[day]?.[slot.key] || ""
+                            }
                           >
                             <option value="">בחר</option>
                             {(psychologists[roomNum] || []).map((p) => (
-                              <option key={p.name} value={p.name}>{p.name}</option>
+                              <option key={p.name} value={p.name}>
+                                {p.name}
+                              </option>
                             ))}
                           </select>
                         ) : (
@@ -179,7 +218,8 @@ function App() {
                     const name = e.target.value.trim();
                     if (name) {
                       const phone = prompt("הזן מספר טלפון (כולל קידומת)");
-                      if (phone) handleSavePsychologist(selectedRoom, name, phone);
+                      if (phone)
+                        handleSavePsychologist(selectedRoom, name, phone);
                       e.target.value = "";
                     }
                   }
@@ -192,7 +232,13 @@ function App() {
                 <li key={p.name}>
                   {`${p.name} (${p.phone})`}
                   {isAdmin && (
-                    <button onClick={() => handleRemovePsychologist(selectedRoom, p.name)}>מחק</button>
+                    <button
+                      onClick={() =>
+                        handleRemovePsychologist(selectedRoom, p.name)
+                      }
+                    >
+                      מחק
+                    </button>
                   )}
                 </li>
               ))}

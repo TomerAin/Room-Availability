@@ -16,13 +16,24 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 function saveData(path, data) {
-  return set(ref(database, path), data);
+  console.log(`[Firebase] Writing data to path: ${path}`, data);
+  return set(ref(database, path), data)
+    .then(() => {
+      console.log(`[Firebase] Successfully wrote data to ${path}`);
+    })
+    .catch((error) => {
+      console.error(`[Firebase] Error writing data to ${path}:`, error);
+    });
 }
 
 function subscribeToData(path, callback) {
   const dataRef = ref(database, path);
   onValue(dataRef, (snapshot) => {
-    callback(snapshot.val());
+    const val = snapshot.val();
+    console.log(`[Firebase] Data updated at path: ${path}`, val);
+    callback(val);
+  }, (error) => {
+    console.error(`[Firebase] Error reading data from ${path}:`, error);
   });
 }
 

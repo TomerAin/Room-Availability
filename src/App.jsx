@@ -19,6 +19,7 @@ function App() {
   const [hour, setHour] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
 
+  // מנוי לנתונים ב-Firebase
   useEffect(() => {
     subscribeToData("assignments", (data) => {
       if (data) setAssignments(data);
@@ -28,14 +29,17 @@ function App() {
     });
   }, []);
 
+  // שמירת שיבוצים כשיש שינוי
   useEffect(() => {
     saveAssignments(assignments);
   }, [assignments]);
 
+  // שמירת פסיכולוגים כשיש שינוי
   useEffect(() => {
     savePsychologists(psychologists);
   }, [psychologists]);
 
+  // שינוי מצב מנהל עם סיסמה
   const toggleAdmin = () => {
     const password = prompt("הזן סיסמה:");
     if (password === "1234") {
@@ -45,7 +49,10 @@ function App() {
     }
   };
 
+  // הוספת פסיכולוג לחדר (בלי כפילויות)
   const handleAssignPsychologist = (roomNum, name, phone) => {
+    name = name.trim();
+    phone = phone.trim();
     setPsychologists((prev) => {
       const updated = { ...prev };
       if (!updated[roomNum]) updated[roomNum] = [];
@@ -56,6 +63,7 @@ function App() {
     });
   };
 
+  // מחיקת פסיכולוג מחדר
   const handleRemovePsychologist = (roomNum, name) => {
     setPsychologists((prev) => {
       const updated = { ...prev };
@@ -64,6 +72,7 @@ function App() {
     });
   };
 
+  // בחירת פסיכולוג לשיבוץ בחדר, יום ושעה
   const handleSelectPsychologist = (roomNum, day, hourSlot, name) => {
     setAssignments((prev) => {
       const updated = { ...prev };
@@ -74,6 +83,7 @@ function App() {
     });
   };
 
+  // שליחת בקשת וואטסאפ לפי תאריך, חדר ושעה
   const handleSendRequest = () => {
     if (!date || !room || !hour) {
       alert("אנא מלא את כל השדות");
@@ -91,10 +101,12 @@ function App() {
     });
   };
 
+  // לחיצה על חדר לפתיחת מודאל
   const handleRoomClick = (roomNum) => {
     setSelectedRoom(roomNum);
   };
 
+  // שמירת פסיכולוג חדש לאחר הוספה במודאל
   const handleSavePsychologist = (roomNum, name, phone) => {
     handleAssignPsychologist(roomNum, name, phone);
     setSelectedRoom(null);
@@ -219,7 +231,7 @@ function App() {
                     if (name) {
                       const phone = prompt("הזן מספר טלפון (כולל קידומת)");
                       if (phone)
-                        handleSavePsychologist(selectedRoom, name, phone);
+                        handleSavePsychologist(selectedRoom, name, phone.trim());
                       e.target.value = "";
                     }
                   }
